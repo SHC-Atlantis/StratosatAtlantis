@@ -1,9 +1,8 @@
 #include <SD.h>
 #include <SPI.h>
 
-float velocity;
-float yaw;
-
+#include "PDCycle.h"
+#include "LED.h"
 
 
 enum class FlightStage
@@ -15,9 +14,19 @@ enum class FlightStage
   LANDED
 }
 
+//Declare variables
+const int kMAIN_LED = 0; //Main LED pin number
+
+FlightStage stage;
+LED main_LED;
+
+//Functions
+
+/*
+* Collect satellite data and write to "data.txt"
+*/
 bool collectData()
 {
-
   File data_file = SD.open("data.txt", FILE_WRITE);
 
   if (data_file) 
@@ -34,13 +43,23 @@ bool collectData()
   return false;
 }
 
-void setup() {
-  
+//Main code
 
+void setup() 
+{
+  //Initialize variables
+  stage = FlightStage::Launch;
+  main_LED = main_LED(kMAIN_LED, millis())
+
+  //Initialize systems
+  pinMode(main_LED, OUTPUT)
 }
 
-void loop() {
+void loop() 
+{
 
-  loop.calculate();
+  collectData();
+
+  digitalWrite(main_LED, main_LED.update(millis())); //Flash the main LED
 
 }
