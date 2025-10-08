@@ -24,7 +24,7 @@ PDCycle::PDCycle(float target_deg, float kP, float kD)
 
 float PDCycle::calculate()
 {
-  m_error = m_pos - m_target_pos;
+  m_error = m_pos_deg - m_target_pos_deg;
 
   m_p_output = m_error * m_kP; //Proportional calculation
 
@@ -34,6 +34,6 @@ float PDCycle::calculate()
   m_last_error = m_error;
   m_last_time_ms = m_time_ms;
 
-  return m_p_output + m_d_output //P + D
+  return m_p_output + m_d_output; //P + D
 
 }

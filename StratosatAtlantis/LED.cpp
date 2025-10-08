@@ -9,10 +9,12 @@ LED::LED(int LED_pin, long length_ms, long delay_ms)
 	, m_delay(false)
 	, m_blink(true)
 	, m_on(true)
-{
-}
+{}
 
-int LED::Update(long time_ms)
+LED::LED()
+{}
+
+int LED::update(long time_ms)
 {
 	int return_value = 0; //Equivalent to LOW arduino digitalWrite enum
 
@@ -25,7 +27,7 @@ int LED::Update(long time_ms)
 	else
 	{
 		m_delay = true;
-		m_delay_time = m_time; //If not true, start the delay
+		m_delay_time = time_ms; //If not true, start the delay
 	}
 
 	//If the blink state is false, and the current time is within the delay time frame, turn off LED and stop blink
@@ -37,7 +39,7 @@ int LED::Update(long time_ms)
 	else
 	{
 		m_blink = true;
-		m_blink_time = time_ms; //If not true, start the blink
+		m_length_time = time_ms; //If not true, start the blink
 	}
 
 	return return_value; 

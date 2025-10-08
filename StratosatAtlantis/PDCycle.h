@@ -10,8 +10,8 @@ class PDCycle
 
   float getTimeStamp();
 
-  PDCycle(float target_deg, float kP, float kD)
+  PDCycle(float target_deg, float kP, float kD);
 
   float calculate();
 
-}
+};

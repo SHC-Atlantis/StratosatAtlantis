@@ -13,14 +13,16 @@ public:
 * @param length_ms: How long to blink the LED, in milliseconds.
 * @param delay_ms: How long to wait until the next blink, in milliseconds.
 */
-	LED(int LED_pin, long length_ms = 1000.0, long delay_ms = 1000.0);
+	LED(int LED_pin, long length_ms = 500.0, long delay_ms = 500.0);
+
+	LED();
 
 	/*
 	  Updates the internal clock and the state of blinking
 
 	  @param time_ms: new timestamp for the internal clock
 	*/
-	int Update(long time_ms);
+	int update(long time_ms);
 
 	inline void TurnOn() { m_on = true; }
 	inline void TurnOff() { m_on = false; }
