@@ -1,9 +1,10 @@
 #include "PDCycle.h"
 
 
-PDCycle::PDCycle(float target_deg, float current_deg float kP, float kD)
+PDCycle::PDCycle(float target_deg, float current_deg, float kP, float kD, float tolerance)
   : m_kP(kP)
   , m_kD(kD)
+  , m_tolerance(tolerance)
   , m_error(0.0)
   , m_last_error(0.0)
   , m_time_ms(0UL)

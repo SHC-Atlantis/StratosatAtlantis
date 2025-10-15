@@ -1,6 +1,7 @@
 #include <Utils.h>
 #include <SHC_BME280.h>
 #include <SHC_BNO055.h>
+#include <SHC_M9N.h>
 #include <SD.h>
 #include <math.h>
 
@@ -29,12 +30,15 @@ const int kRB_SOLENOID = -1; //Right-Back Solenoid pin number
 const float kSTABILIZATION_ALTITUDE = 20000.0; //The height required to begin stabilization
 
 float altitude = 0;
+//unsigned long since_last_collection = 0UL;
 
 FlightStage stage;
+
 LED main_LED(kMAIN_LED);
+
 SHC_BME280 bme;
 BNO055 accelerometer;
-
+M9N gps;
 
 //Functions
 
@@ -86,7 +90,7 @@ void fireSolenoidsByPD(PDCycle cycle)
 */
 void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 0.5)
 {
-  if (pos > (GetErrorAngle(pos_deg) + tolerance)) //Rotate clockwise
+  if (pos_deg > (getErrorAngle(pos_deg) + tolerance_deg)) //Rotate clockwise
   {
     digitalWrite(kLB_SOLENOID, HIGH);
     digitalWrite(kRF_SOLENOID, HIGH);
@@ -94,7 +98,7 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 0.5)
     digitalWrite(kLF_SOLENOID, LOW);
     digitalWrite(kRB_SOLENOID, LOW);
   }
-  else if (pos < (GetErrorAngle(pos_deg) - tolerance)) //Rotate counter clockwise
+  else if (pos_deg < (getErrorAngle(pos_deg) - tolerance_deg)) //Rotate counter clockwise
   {
     digitalWrite(kLB_SOLENOID, LOW);
     digitalWrite(kRF_SOLENOID, LOW);
@@ -117,27 +121,34 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 0.5)
 
 void setup() 
 {
+    Serial.begin(9600);
+
   //Initialize variables
   stage = FlightStage::LAUNCH;
   main_LED = LED(kMAIN_LED, 50, 950); // blink 1/20 sec at 1hz
 
   //Initialize systems
   pinMode(kMAIN_LED, OUTPUT);
+
   pinMode(kLF_SOLENOID, OUTPUT);
   pinMode(kLB_SOLENOID, OUTPUT);
   pinMode(kRF_SOLENOID, OUTPUT);
   pinMode(kRB_SOLENOID, OUTPUT);
 
-  bme.prefetchData();
-  accelerometer.prefetchData();
-
-  Serial.begin(9600);
+  //TODO: Implement error handling
+  accelerometer.init();
+  bme.init();
+  Serial.println(String(gps.init()));
 }
 
 void loop() 
 {
-  digitalWrite(kMAIN_LED, main_LED.update(millis())); //Blink the main LED
+  bme.prefetchData();
+  accelerometer.prefetchData();
+  gps.prefetchData();
 
+  digitalWrite(kMAIN_LED, main_LED.update(millis())); //Blink the main LED
+  
   switch (stage)
   {
     case FlightStage::ASCENT:
@@ -156,5 +167,5 @@ void loop()
     CollectData();
 
   }
-
+  
 }
