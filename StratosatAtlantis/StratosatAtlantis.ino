@@ -2,11 +2,13 @@
 #include <SHC_BME280.h>
 #include <SHC_BNO055.h>
 #include <SHC_M9N.h>
-#include <SD.h>
+#include <string>
+// #include <SD.h>
 #include <math.h>
 
 #include "PDCycle.h"
 #include "LED.h"
+
 
 
 enum class FlightStage
@@ -27,6 +29,7 @@ const int kLB_SOLENOID = -1; //Left-Back Solenoid pin number
 const int kRF_SOLENOID = -1; //Right-Front Solenoid pin number
 const int kRB_SOLENOID = -1; //Right-Back Solenoid pin number
 
+
 const float kSTABILIZATION_ALTITUDE = 20000.0; //The height required to begin stabilization
 
 float altitude = 0;
@@ -45,23 +48,57 @@ M9N gps;
 /*
 * Collect satellite data and write to "data.txt"
 */
-bool collectData()
+void collectData()
 {
-  File data_file = SD.open("data.txt", FILE_WRITE);
 
-  if (data_file) 
-  {
+
+  // Year,Month,Day,Time,Minute,Second,AccX,AccY,AccZ,OrientX,OrientY,OrientZ,GyroX,GyroY,GyroZ,Humidity,Pressure,Temperature,Altitude,Latitude,Longitude,SIV
+  String data = ""+
+      String(gps.getYear()) + "," +
+      String(gps.getMonth()) + "," +
+      String(gps.getDay()) + "," +
+      String(gps.getMinute()) + "," +
+      String(gps.getSecond()) + "," +
+      String(accelerometer.getAccelerationX()) + "," + 
+      String(accelerometer.getAccelerationY()) + "," +
+      String(accelerometer.getAccelerationZ()) + "," +
+      String(accelerometer.getOrientationX()) + "," +
+      String(accelerometer.getOrientationY()) + "," + 
+      String(accelerometer.getOrientationZ()) + "," +
+      String(accelerometer.getGyroX()) + "," +
+      String(accelerometer.getGyroY()) + "," +
+      String(accelerometer.getGyroZ()) + "," +
+      String(bme.getHumidity()) + "," +
+      String(bme.getPressure()) + "," +
+      String(bme.getTemperature()) + "," +
+      String(gps.getAltitude()) + "," +
+      String(gps.getLatitude()) + "," +
+      String(gps.getLongitude())  + "," +
+      String(gps.getSIV()) + ","
+      ;
+      
+    Serial.println(data);
+    
+
+  //if (data_file) 
+  //{
     //data_file.write() //Write to data.txt here
 
-    data_file.close();
+    //
+    //String data = ""+
+    //  String(accelerometer.getAccelerationX()) + "," + 
+    //  String(accelerometer.getAccelerationY());
+    //Serial1.println(data);
 
-    Serial.println("!Data Logged!");
-    return true;
-  } 
+    //data_file.close();
+
+    //Serial.println("!Data Logged!");
+  // return true;
+} 
   
-  Serial.println("!Error Opening Log File!");
-  return false;
-}
+  //Serial.println("!Error Opening Log File!");
+  //return false;
+//}
 /*
 * Gets the angle of error that the satellite must rotate to
 * @param init_angle_deg: The angle that satellite is currently facing
@@ -121,13 +158,19 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 0.5)
 
 void setup() 
 {
-    Serial.begin(9600);
+  Serial.begin(115200);
+  Serial1.begin(115200);
+
+  //csv file header
+  Serial.println("Year,Month,Day,Time,Min,Sec,AccX,AccY,AccZ,OrientX,OrientY,OrientZ,GyroX,GyroY,GyroZ,Humidity,Pressure,Temperature,Altitude,Lat,Long,SIV,");
 
   //Initialize variables
   stage = FlightStage::LAUNCH;
   main_LED = LED(kMAIN_LED, 50, 950); // blink 1/20 sec at 1hz
 
   //Initialize systems
+
+
   pinMode(kMAIN_LED, OUTPUT);
 
   pinMode(kLF_SOLENOID, OUTPUT);
@@ -136,36 +179,46 @@ void setup()
   pinMode(kRB_SOLENOID, OUTPUT);
 
   //TODO: Implement error handling
-  accelerometer.init();
-  bme.init();
+  Serial.println(accelerometer.init());
+  Serial.println(String(bme.init()));
   Serial.println(String(gps.init()));
 }
 
 void loop() 
 {
+  
   bme.prefetchData();
   accelerometer.prefetchData();
   gps.prefetchData();
 
-  digitalWrite(kMAIN_LED, main_LED.update(millis())); //Blink the main LED
-  
+  collectData();
+  Serial1.println("after collectData()");
+
+  // digitalWrite(kMAIN_LED, main_LED.update(millis())); //Blink the main LED
+  Serial1.println("teletubbies");
+  // collectData();
+  return;
+
   switch (stage)
   {
     case FlightStage::ASCENT:
-
-      CollectData();
+      collectData();
 
       if (altitude > kSTABILIZATION_ALTITUDE)
       {
         stage = FlightStage::STABILIZE;
       }
 
-    break
+    break;
     case FlightStage::STABILIZE:
+    //firePneumaticsByBB(0.0); //input current heading
+    collectData();
 
-    firePneumaticsByBB(0.0); //input current heading
-    CollectData();
+    break;
+    default:
+    break;
 
+    
   }
   
 }
