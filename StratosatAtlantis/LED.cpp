@@ -16,7 +16,7 @@ LED::LED(int LED_pin, unsigned long length_ms, unsigned long delay_ms)
 LED::LED()
 {}
 
-int LED::update(unsigned long time_ms)
+bool LED::update(unsigned long time_ms)
 {
 	// int return_value = 0; //Equivalent to LOW arduino digitalWrite enum
 
@@ -46,8 +46,10 @@ int LED::update(unsigned long time_ms)
 
 	// return return_value; 
 
-    if (!m_on) 
-			return 0;
+
+
+  if (!m_on) 
+		return 0;
 
   // Determine current interval based on phase
   const unsigned long interval = m_phase_on ? m_length_ms : m_delay_ms;
@@ -64,5 +66,5 @@ int LED::update(unsigned long time_ms)
     m_phase_start = time_ms;
   }
 
-  return m_phase_on ? 1 : 0;
+  return m_phase_on;
 }
