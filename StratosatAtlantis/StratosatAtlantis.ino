@@ -52,11 +52,12 @@ void collectData()
 {
 
 
-  // Year,Month,Day,Time,Minute,Second,AccX,AccY,AccZ,OrientX,OrientY,OrientZ,GyroX,GyroY,GyroZ,Humidity,Pressure,Temperature,Altitude,Latitude,Longitude,SIV
+  // Year,Month,Day,Hour,Minute,Second,AccX,AccY,AccZ,OrientX,OrientY,OrientZ,GyroX,GyroY,GyroZ,Humidity,Pressure,Temperature,Altitude,Latitude,Longitude,SIV
   String data = ""+
       String(gps.getYear()) + "," +
       String(gps.getMonth()) + "," +
       String(gps.getDay()) + "," +
+      String(gps.getHour()) + "," +
       String(gps.getMinute()) + "," +
       String(gps.getSecond()) + "," +
       String(accelerometer.getAccelerationX()) + "," + 
@@ -77,7 +78,7 @@ void collectData()
       String(gps.getSIV()) + ","
       ;
       
-    Serial.println(data);
+    Serial1.println(data);
     
 
   //if (data_file) 
@@ -158,11 +159,11 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 0.5)
 
 void setup() 
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
   Serial1.begin(115200);
 
   //csv file header
-  Serial.println("Year,Month,Day,Time,Min,Sec,AccX,AccY,AccZ,OrientX,OrientY,OrientZ,GyroX,GyroY,GyroZ,Humidity,Pressure,Temperature,Altitude,Lat,Long,SIV,");
+  Serial1.println("Year,Month,Day,Hour,Minute,Second,AccX,AccY,AccZ,OrientX,OrientY,OrientZ,GyroX,GyroY,GyroZ,Humidity,Pressure,Temperature,Altitude,Lat,Long,SIV");
 
   //Initialize variables
   stage = FlightStage::LAUNCH;
@@ -192,10 +193,9 @@ void loop()
   gps.prefetchData();
 
   collectData();
-  Serial1.println("after collectData()");
 
   // digitalWrite(kMAIN_LED, main_LED.update(millis())); //Blink the main LED
-  Serial1.println("teletubbies");
+  
   // collectData();
   return;
 
