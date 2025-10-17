@@ -23,16 +23,17 @@ enum class FlightStage
 //The front has the camera
 
 //Declare variables
-const int kMAIN_LED = LED_BUILTIN; //Main LED pin number
-const int kCW_SOLENOID = -1; //Clockwise Solenoid pin number
-const int kCCW_SOLENOID = -1; //Counter Clockwise Solenoid pin number
+const int kMAIN_LED_1 = 2; //Main LED pin number
+const int kCW_SOLENOID = 3; //Clockwise Solenoid pin number
+const int kCCW_SOLENOID = 4; //Counter Clockwise Solenoid pin number
+const int kMAIN_LED_2 = 5; //Other main LED pin number
 
 const float kASCENT_ALTITUDE = 500.0; //The height required to begin ascent
 const float kSTABILIZATION_ALTITUDE = 20000.0; //The height required to begin stabilization
 
 FlightStage stage;
 
-LED main_LED(kMAIN_LED);
+LED main_LED(kMAIN_LED_1);
 
 SHC_BME280 bme;
 BNO055 accelerometer;
@@ -52,32 +53,33 @@ Timer solenoid_timer(0); //Timer to control the solenoid's rate of fire.
 */
 void collectData()
 {
-  //File data_file = SD.open("data.txt", FILE_WRITE);
-  Serial1.println("4");
+  // Year,Month,Day,Time,Minute,Second,AccX,AccY,AccZ,OrientX,OrientY,OrientZ,GyroX,GyroY,GyroZ,Humidity,Pressure,Temperature,Altitude,Latitude,Longitude,SIV
   String data = ""+
+      String(gps.getYear()) + "," +
+      String(gps.getMonth()) + "," +
+      String(gps.getDay()) + "," +
+      String(gps.getMinute()) + "," +
+      String(gps.getSecond()) + "," +
       String(accelerometer.getAccelerationX()) + "," + 
-      String(accelerometer.getAccelerationY());
-    Serial1.println(data);
-
-  //if (data_file) 
-  //{
-    //data_file.write() //Write to data.txt here
-
-    //date - time - stageOfFlight - pressure - temp - humidity - rotation - lat. - long. - altitude - packetNumber - 
-    //String data = ""+
-    //  String(accelerometer.getAccelerationX()) + "," + 
-    //  String(accelerometer.getAccelerationY());
-    //Serial1.println(data);
-
-    //data_file.close();
-
-    //Serial.println("!Data Logged!");
-  // return true;
+      String(accelerometer.getAccelerationY()) + "," +
+      String(accelerometer.getAccelerationZ()) + "," +
+      String(accelerometer.getOrientationX()) + "," +
+      String(accelerometer.getOrientationY()) + "," + 
+      String(accelerometer.getOrientationZ()) + "," +
+      String(accelerometer.getGyroX()) + "," +
+      String(accelerometer.getGyroY()) + "," +
+      String(accelerometer.getGyroZ()) + "," +
+      String(bme.getHumidity()) + "," +
+      String(bme.getPressure()) + "," +
+      String(bme.getTemperature()) + "," +
+      String(gps.getAltitude()) + "," +
+      String(gps.getLatitude()) + "," +
+      String(gps.getLongitude())  + "," +
+      String(gps.getSIV()) + ","
+      ;
+      
+    Serial.println(data);
 } 
-  
-  //Serial.println("!Error Opening Log File!");
-  //return false;
-//}
 /*
 * Gets the angle of error that the satellite must rotate to
 * @param init_angle_deg: The angle that satellite is currently facing
@@ -89,10 +91,10 @@ float getErrorAngle(float init_angle_deg)
   return init_angle_deg - tan(target_y / target_x);
 }
 
-/*Fires solenoids in pairs at a given rate via PD
+/*Fires solenoids at a given rate via PD
 * + -> clockwise
 * - -> counterclockwise
-* @param rate: the rate to fire the solenoids. 
+* @param rate: how long to wait for the next firing of the solenoids
 */
 void fireSolenoidsByPD(PDCycle &cycle)
 {
@@ -126,7 +128,7 @@ void fireSolenoidsByPD(PDCycle &cycle)
 
 }
 
-/*Fires solenoids in pairs based upon the angular position relative to the target position via BangBang
+/*Fires solenoids based upon the angular position relative to the target position via BangBang
 * @param pos_deg: the current angular position
 * @param tolerance_deg: how much of an angle to allow pos_deg to be off from the target
 */
@@ -154,47 +156,91 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 0.5)
 
 void setup() 
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial1.begin(115200);
 
-  Serial1.println("0");
+  //csv file header
+  Serial.println("Year,Month,Day,Time,Min,Sec,AccX,AccY,AccZ,OrientX,OrientY,OrientZ,GyroX,GyroY,GyroZ,Humidity,Pressure,Temperature,Altitude,Lat,Long,SIV,");
 
   //Initialize variables
   stage = FlightStage::LAUNCH;
-  main_LED = LED(kMAIN_LED, 50, 950); // blink 1/20 sec at 1hz
+  main_LED_1 = LED(kMAIN_LED_1, 50, 950); // blink 1/20 sec at 1hz
 
   //Initialize systems
 
-
-  pinMode(kMAIN_LED, OUTPUT);
+  pinMode(kMAIN_LED_1, OUTPUT);
+  pinMode(kMAIN_LED_2, OUTPUT);
 
   pinMode(kCW_SOLENOID, OUTPUT);
   pinMode(kCCW_SOLENOID, OUTPUT);
 
-  //TODO: Implement error handling
-  accelerometer.init();
-  Serial1.println(String(bme.init()));
-  Serial.println(String(gps.init()));
-  Serial1.println("1");
+  int error_amount = 0;
+  int error_stored;
+
+  error_stored = accelerometer.init() //init accelerometer
+  error_amount += error_stored;
+  
+  Serial.println("Accelerometer: " + String(error_stored));
+
+  error_stored = bme.init() //Init BME
+  error_amount += error_stored;
+  
+  Serial.println("BME: " + String(error_stored));
+
+  error_stored = gps.init() //Init GPS
+  error_amount += error_stored;
+  
+  Serial.println("GPS: " + String(error_stored));
+
+  if (error_amount > 0) //If any errors, scan I2C // Credit: Khaled Magdy on DeepBlueMbedded.com
+  {
+  byte error, address;
+
+  int nDevices;
+
+  Serial.println("Scanning...");
+  nDevices = 0;
+  for(address = 1; address < 127; address++ )
+  {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    if (error == 0)
+    {
+      Serial.print("I2C device found at address 0x");
+      if (address<16)
+      { Serial.print("0"); }
+      Serial.print(address,HEX);
+      Serial.println("  !");
+      nDevices++;
+    }
+    else if (error==4)
+    {
+      Serial.print("Unknown error at address 0x");
+      if (address<16)
+      { Serial.print("0"); }
+      Serial.println(address,HEX);
+    }    
+  }
+  if (nDevices == 0)
+  { Serial.println("No I2C devices found\n"); }
+  else
+  { Serial.println("done\n"); }
+  }
 }
 
 void loop() 
 {
   collectData();
 
-  Serial1.println("2");
   bme.prefetchData();
-  Serial1.println("2.1");
   accelerometer.prefetchData();
-  Serial1.println("2.2");
   gps.prefetchData();
-  Serial1.println("2.3");
 
-  digitalWrite(kMAIN_LED, main_LED.update(millis())); //Blink the main LED
-  Serial1.println("2.4");
+  digitalWrite(kMAIN_LED_1, main_LED.update(millis())); //Blink the main LED
+  digitalWrite(kMAIN_LED_2, main_LED.update(millis()));
 
   collectData();
-  Serial1.println(":)");
+  Serial1.println("after collectData()");
 
   bool above500m_upvelocity = (gps.getAltitude() > 500.0) && (accelerometer.getGyroZ() > 0);
   bool first_run = true;
@@ -280,7 +326,9 @@ void loop()
 
         collection_timer.reset();
       }
-    
+    default:
+    Serial1.println("!ERROR! stage is out of scope of the FlightStage enum!");
+    break;
   }
   
 }
