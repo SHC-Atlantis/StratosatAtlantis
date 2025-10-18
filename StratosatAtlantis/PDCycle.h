@@ -2,6 +2,14 @@
 
 class PDCycle
 {
+  enum class OutputType
+  {
+    Percent,
+    Direct
+  };
+
+  OutputType m_output_type;
+
   float m_kP, m_kD, m_error, m_last_error, m_pos_deg, m_target_pos_deg, m_p_output, m_d_output, m_tolerance;
 
   unsigned long m_time_ms, m_last_time_ms;
