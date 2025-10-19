@@ -3,15 +3,12 @@
 #include <SHC_BNO055.h>
 #include <SHC_M9N.h>
 #include <string>
-// #include <SD.h>
 #include <math.h>
 
 #include "PDCycle.h"
 #include "LED.h"
 
 #include "ICP201xx.h"
-
-
 
 enum class FlightStage
 {
@@ -319,7 +316,7 @@ void loop()
     altitude -= 16;
   }
   else{
-    altitude == 0;
+    altitude = 0;
   }
   
 
@@ -329,8 +326,8 @@ void loop()
   gps.prefetchData();
 
   //bool above_500m_upvelocity = (gps.getAltitude() > 500.0) && (negVel());
-  bool first_run = true;
-  bool was_above_stabilization = false;
+  //bool first_run = true; // TODO: unused, can it be deleted?
+  //bool was_above_stabilization = false;
 
   Serial1.println("BEFORE fire");
   fireSolenoidsByBB(0.0);
@@ -357,46 +354,46 @@ void loop()
       FStage = "ASCENT";
       collectData();
 
-    if (altitude < kSTABILIZATION_ALTITUDE)
-    {
-      Serial.println("-----------less than alt to stabilize");
-      ascent_timer.reset();
-      break;
-    }
-      
-    else if(ascent_timer.isComplete() && (kSTABILIZATION_ALTITUDE < altitude))
-    {
-      Serial.println("----------- stabilize");
-      stage = FlightStage::STABILIZE;
-    }
-
-    else if (negVelocity(10))
-    {
-      Serial.println("loosing alt");
-      stage = FlightStage::DESCENT;
-    }
-
-    else{
-      Serial.println("else");
-    }
-    Serial.println(ascent_timer.timeRemaining());
-    break;
-
-    case FlightStage::STABILIZE:
-    FStage = "STABILIZE";
-    
-    collectData();
-
-    if (negVelocity(5))
+      if (altitude < kSTABILIZATION_ALTITUDE)
       {
+        Serial.println("-----------less than alt to stabilize");
+        ascent_timer.reset();
+        break;
+      }
+        
+      else if(ascent_timer.isComplete() && (kSTABILIZATION_ALTITUDE < altitude))
+      {
+        Serial.println("----------- stabilize");
+        stage = FlightStage::STABILIZE;
+      }
+
+      else if (negVelocity(10))
+      {
+        Serial.println("loosing alt");
         stage = FlightStage::DESCENT;
       }
 
-    fireSolenoidsByBB(0.0); //TODO: Tune / stabilize
+      else{
+        Serial.println("else");
+      }
+      Serial.println(ascent_timer.timeRemaining());
+    break;
+
+    case FlightStage::STABILIZE:
+      FStage = "STABILIZE";
+      
+      collectData();
+
+      if (negVelocity(5))
+        {
+          stage = FlightStage::DESCENT;
+        }
+
+      fireSolenoidsByBB(0.0); //TODO: Tune / stabilize
     break;
 
     case FlightStage::DESCENT:
-    FStage = "DESCENT";
+      FStage = "DESCENT";
 
       collectData();
 
@@ -410,19 +407,8 @@ void loop()
       {
         stage = FlightStage::LANDED;
       }
-
-      
-      // if (fabs(accelerometer.getGyroZ()) > 2)
-      // {
-      //   novelocity_timer.reset();
-      // }
-
-      // if (novelocity_timer.isComplete())
-      // {
-      //   stage = FlightStage::LANDED;
-      // }
-
     break;
+
     case FlightStage::LANDED:
       FStage = "LANDED";
       if (collection_timer.isComplete())
