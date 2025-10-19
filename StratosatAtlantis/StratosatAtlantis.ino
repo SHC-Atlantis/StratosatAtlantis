@@ -161,12 +161,11 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 5)
 }
 
 
-
 bool posVelocity(){
   Serial.print("Current count ------------->");
   Serial.println(count);
   currentAlt = altitude;
-  if(count < 15){ //TODO----------------------------change to 30
+  if(count < 30){ 
     if(downvelocity_timer.isComplete()){
       if((currentAlt - lastAlt) > 0){ //check if alt difference is pos
         count += 1;
@@ -179,7 +178,7 @@ bool posVelocity(){
       downvelocity_timer.reset();
     }
   }
-  else if(count >= 15){ //TODO----------------------------change to 30
+  else if(count >= 30){
     count = 0;
     return true;
   }
