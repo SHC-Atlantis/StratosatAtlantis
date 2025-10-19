@@ -28,7 +28,7 @@ const int kLB_SOLENOID = 3; //Left-Back Solenoid pin number
 const int kRF_SOLENOID = 3; //Right-Front Solenoid pin number
 const int kRB_SOLENOID = 4; //Right-Back Solenoid pin number
 
-float altitude = 20000;
+float altitude = 25000;
 
 int topReached = 0;
 
@@ -111,9 +111,10 @@ void collectData()
 */
 float getErrorAngle(float init_angle_deg)
 {
-  float target_x, target_y;
+  float target_x = 1; //TODO-----------------UPDATE
+  float target_y = 1; //TODO-----------------UPDATE
 
-  return init_angle_deg - tan(target_y / target_x);
+  return init_angle_deg - atan2(target_y,target_x)/3.141592*180; //converts to deg
 }
 
 /*Fires solenoids in pairs at a given rate via PD
@@ -131,23 +132,28 @@ void fireSolenoidsByPD(PDCycle cycle)
 * @param pos_deg: the current angular position
 * @param tolerance_deg: how much of an angle to allow pos_deg to be off from the target
 */
-void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 5)
+void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -5)
 {
-  if (pos_deg > (getErrorAngle(pos_deg) + tolerance_deg)) //Rotate clockwise
+  delay(500);
+  Serial.print("Value: ");
+  Serial.println(getErrorAngle(pos_deg));
+  if (tolerance_deg > (getErrorAngle(pos_deg))) //Rotate clockwise
   {
     digitalWrite(kLB_SOLENOID, HIGH);
     digitalWrite(kRF_SOLENOID, HIGH);
 
     digitalWrite(kLF_SOLENOID, LOW);
     digitalWrite(kRB_SOLENOID, LOW);
+    Serial.println("CLOCKWISE");
   }
-  else if (pos_deg < (getErrorAngle(pos_deg) - tolerance_deg)) //Rotate counter clockwise
+  else if (fabs(tolerance_deg) < (getErrorAngle(pos_deg))) //Rotate counter clockwise
   {
     digitalWrite(kLB_SOLENOID, LOW);
     digitalWrite(kRF_SOLENOID, LOW);
 
     digitalWrite(kLF_SOLENOID, HIGH);
     digitalWrite(kRB_SOLENOID, HIGH);
+    Serial.println("COUNTER CLOCKWISE");
   }
   else //Do not rotate
   {
@@ -156,14 +162,15 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 5)
 
     digitalWrite(kLF_SOLENOID, LOW);
     digitalWrite(kRB_SOLENOID, LOW);
+    Serial.println("ALIGNED");
   }
 
 }
 
 
 bool posVelocity(){
-  Serial.print("Current count ------------->");
-  Serial.println(count);
+  //Serial.print("Current count ------------->");
+  //Serial.println(count);
   currentAlt = altitude;
   if(count < 30){ 
     if(downvelocity_timer.isComplete()){
@@ -186,13 +193,13 @@ bool posVelocity(){
 }
 
 bool negVelocity(int time){
-  Serial.print("(neg) Current count ------------->");
-  Serial.println(count);
+  //Serial.print("(neg) Current count ------------->");
+  //Serial.println(count);
   currentAlt = altitude;
   if(count < time){
     if(downvelocity_timer.isComplete()){
-      Serial.println(currentAlt);
-      Serial.println(lastAlt);
+      //Serial.println(currentAlt);
+      //Serial.println(lastAlt);
       if((currentAlt - lastAlt) < 0){ //check if alt difference is neg
         count += 1;
       } 
@@ -259,43 +266,10 @@ void setup()
   Serial.println("ICP: ") + String(error_stored);
 
 
-  if (error_amount > 0) //If any errors, scan I2C // Credit: Khaled Magdy on DeepBlueMbedded.com
-  {
-  byte error, address;
-
-  int nDevices;
-
-  Serial.println("Scanning...");
-  nDevices = 0;
-  for(address = 1; address < 127; address++ )
-  {
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if (error == 0)
-    {
-      Serial.print("I2C device found at address 0x");
-      if (address<16)
-      { Serial.print("0"); }
-      Serial.print(address,HEX);
-      Serial.println("  !");
-      nDevices++;
-    }
-    else if (error==4)
-    {
-      Serial.print("Unknown error at address 0x");
-      if (address<16)
-      { Serial.print("0"); }
-      Serial.println(address,HEX);
-    }    
-  }
-  if (nDevices == 0)
-  { Serial.println("No I2C devices found\n"); }
-  else
-  { Serial.println("done\n"); }
-  }
+  
 
   lastAlt = gps.getAltitude();
-  stage = FlightStage::DESCENT;
+  stage = FlightStage::STABILIZE;
 }
 
 void loop() 
@@ -311,15 +285,13 @@ void loop()
   //   altitude -= 16;
   // }
 
-  if (altitude > 0){
-    altitude -= 16;
-  }
-  else{
-    altitude = 0;
-  }
+  // if (altitude > 0){
+  //   altitude -= 16;
+  // }
+  // else{
+  //   altitude = 0;
+  // }
   
-
-
   bme.prefetchData();
   accelerometer.prefetchData();
   gps.prefetchData();
@@ -328,14 +300,10 @@ void loop()
   //bool first_run = true; // TODO: unused, can it be deleted?
   //bool was_above_stabilization = false;
 
-  Serial1.println("BEFORE fire");
-  fireSolenoidsByBB(0.0);
-  Serial1.println("after fire");
-
-  Serial.print("Stage: ");
-  Serial.println(FStage);
-  Serial.print("Alt: ");
-  Serial.println(altitude);
+  //Serial.print("Stage: ");
+  // Serial.println(FStage);
+  // Serial.print("Alt: ");
+  // Serial.println(altitude);
 
   switch (stage)
   {
@@ -388,7 +356,9 @@ void loop()
           stage = FlightStage::DESCENT;
         }
 
-      fireSolenoidsByBB(0.0); //TODO: Tune / stabilize
+      Serial.print("Orientation");
+      Serial.println(accelerometer.getOrientationX());
+      fireSolenoidsByBB(accelerometer.getOrientationX()); //TODO: Tune / stabilize
     break;
 
     case FlightStage::DESCENT:
