@@ -26,10 +26,14 @@ enum class FlightStage
 
 //Declare variables
 const int kMAIN_LED = 2; //Main LED pin number
-const int kLF_SOLENOID = -1; //Left-Front Solenoid pin number
-const int kLB_SOLENOID = -1; //Left-Back Solenoid pin number
-const int kRF_SOLENOID = -1; //Right-Front Solenoid pin number
-const int kRB_SOLENOID = -1; //Right-Back Solenoid pin number
+const int kLF_SOLENOID = 4; //Left-Front Solenoid pin number
+const int kLB_SOLENOID = 3; //Left-Back Solenoid pin number
+const int kRF_SOLENOID = 3; //Right-Front Solenoid pin number
+const int kRB_SOLENOID = 4; //Right-Back Solenoid pin number
+
+float altitude = 20000;
+
+int topReached = 0;
 
 
 const float kSTABILIZATION_ALTITUDE = 20000.0; //The height required to begin stabilization
@@ -37,6 +41,7 @@ const float kSTABILIZATION_ALTITUDE = 20000.0; //The height required to begin st
 float lastAlt = 0;
 int count = 0;
 float beginAlt = 0;
+float currentAlt = 0;
 
 float pressure_kP = 0;
 float temperature_C = 0;
@@ -55,7 +60,7 @@ ICP201xx ICP(Wire,0);
 
 Timer above500m_upvelocity_timer(30000); //Timer to track upward velocity and if the satellite is above 500m.
 Timer ascent_timer(30000); //Timer to remain in ascension for 30s.
-Timer downvelocity_timer(30000); //Timer to track downward velocity for 30s.
+Timer downvelocity_timer(3000); //Timer to track downward velocity for 30s.
 Timer novelocity_timer(30000); //Timer to track absence of velocity for 30s.
 Timer collection_timer(30000); //Timer to track how long it's been since the last collection in the landed phase.
 Timer solenoid_timer(0); //Timer to control the solenoid's rate of fire.
@@ -129,7 +134,7 @@ void fireSolenoidsByPD(PDCycle cycle)
 * @param pos_deg: the current angular position
 * @param tolerance_deg: how much of an angle to allow pos_deg to be off from the target
 */
-void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 0.5)
+void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 5)
 {
   if (pos_deg > (getErrorAngle(pos_deg) + tolerance_deg)) //Rotate clockwise
   {
@@ -158,57 +163,63 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 0.5)
 
 }
 
-bool negVel()
-{
-  float currentAlt = gps.getAltitude();
-  if(count >= 30)
-  {
-    if(!downvelocity_timer.isComplete())
-    {
-      if ((currentAlt - lastAlt) < 0)
-      {
+
+
+bool posVelocity(){
+  Serial.print("Current count ------------->");
+  Serial.println(count);
+  currentAlt = altitude;
+  if(count < 15){ //TODO----------------------------change to 30
+    if(downvelocity_timer.isComplete()){
+      if((currentAlt - lastAlt) > 0){ //check if alt difference is pos
         count += 1;
-      }
-      else
-      {
+      } 
+      else{
         count = 0;
+        return false;
       }
       lastAlt = currentAlt;
       downvelocity_timer.reset();
-      return false;
     }
   }
-  count = 0
-  return true;
+  else if(count >= 15){ //TODO----------------------------change to 30
+    count = 0;
+    return true;
+  }
+  return false;
 }
 
-bool posVel()
-{
-  float currentAlt = gps.getAltitude();
-  if(count >= 30)
-  {
-    if(!downvelocity_timer.isComplete())
-    {
-      if ((currentAlt - lastAlt) > 0)
-      {
+bool negVelocity(int time){
+  Serial.print("(neg) Current count ------------->");
+  Serial.println(count);
+  currentAlt = altitude;
+  if(count < time){
+    if(downvelocity_timer.isComplete()){
+      Serial.println(currentAlt);
+      Serial.println(lastAlt);
+      if((currentAlt - lastAlt) < 0){ //check if alt difference is neg
         count += 1;
-      }
-      else
-      {
+      } 
+      else{
         count = 0;
+        return false;
       }
       lastAlt = currentAlt;
       downvelocity_timer.reset();
-      return false;
     }
+    lastAlt = currentAlt;
   }
-  count = 0
-  return true;
+  else if(count >= time){ 
+    return true;
+  }
+  return false;
 }
+
 //Main code
 
 void setup() 
 {
+  
   Serial.begin(9600);
   Serial1.begin(115200);
 
@@ -217,15 +228,15 @@ void setup()
 
   //Initialize variables
   stage = FlightStage::LAUNCH;
-  main_LED = LED(kMAIN_LED_1, 50, 950); // blink 1/20 sec at 1hz
+ // main_LED = LED(kMAIN_LED_1, 50, 950); // blink 1/20 sec at 1hz
 
   //Initialize systems
 
-  pinMode(kMAIN_LED_1, OUTPUT);
-  pinMode(kMAIN_LED_2, OUTPUT);
+  //pinMode(kMAIN_LED_1, OUTPUT);
+  //pinMode(kMAIN_LED_2, OUTPUT);
 
-  pinMode(kCW_SOLENOID, OUTPUT);
-  pinMode(kCCW_SOLENOID, OUTPUT);
+  //pinMode(kCW_SOLENOID, OUTPUT);
+  //pinMode(kCCW_SOLENOID, OUTPUT);
 
   int error_amount = 0;
   int error_stored;
@@ -287,109 +298,115 @@ void setup()
   { Serial.println("done\n"); }
   }
 
-  float lastAlt = gps.getAltitude();
+  lastAlt = gps.getAltitude();
+  stage = FlightStage::DESCENT;
 }
 
 void loop() 
 {
+  // if(altitude < 30000 && topReached == 0){
+  //   altitude += 16;
+  // }
+  // else if(altitude >= 30000){
+  //   topReached = 1;
+  // }
   
+  // if(topReached == 1){
+  //   altitude -= 16;
+  // }
+
+  if (altitude > 0){
+    altitude -= 16;
+  }
+  else{
+    altitude == 0;
+  }
+  
+
+
   bme.prefetchData();
   accelerometer.prefetchData();
   gps.prefetchData();
 
-  bool above_500m_upvelocity = (gps.getAltitude() > 500.0) && (negVel());
+  //bool above_500m_upvelocity = (gps.getAltitude() > 500.0) && (negVel());
   bool first_run = true;
   bool was_above_stabilization = false;
+
+  Serial1.println("BEFORE fire");
+  fireSolenoidsByBB(0.0);
+  Serial1.println("after fire");
+
+  Serial.print("Stage: ");
+  Serial.println(FStage);
+  Serial.print("Alt: ");
+  Serial.println(altitude);
 
   switch (stage)
   {
     case FlightStage::LAUNCH:
       FStage = "LAUNCH";
-      if (!above_500m_upvelocity && first_run)
-      {
-        above500m_upvelocity_timer.reset();
-        first_run = false;
-      }
-      else if (above500m_upvelocity_timer.isComplete())
-      {
+      collectData();
+
+      Serial.println("pre posVel");
+      if (posVelocity() == true){
         stage = FlightStage::ASCENT;
       }
-      else if (!above_500m_upvelocity)
-      {
-        above500m_upvelocity_timer.reset();
-      }
     break;
+
     case FlightStage::ASCENT:
       FStage = "ASCENT";
       collectData();
 
-      if (gps.getAltitude() < kSTABILIZATION_ALTITUDE)
-      {
-        ascent_timer.reset();
-        break;
-      }
+    if (altitude < kSTABILIZATION_ALTITUDE)
+    {
+      Serial.println("-----------less than alt to stabilize");
+      ascent_timer.reset();
+      break;
+    }
       
-      else if(ascent_time.isComplete())
-      {
-        stage = FlightStage::STABILIZE;
-      }
+    else if(ascent_timer.isComplete() && (kSTABILIZATION_ALTITUDE < altitude))
+    {
+      Serial.println("----------- stabilize");
+      stage = FlightStage::STABILIZE;
+    }
 
-      if (negVel())
-      {
-        stage = FlightStage::DESCENT;
-      }
+    else if (negVelocity(10))
+    {
+      Serial.println("loosing alt");
+      stage = FlightStage::DESCENT;
+    }
 
-      // if (accelerometer.getGyroZ() > 2)
-      // {
-      //   downvelocity_timer.reset();
-      // }
-      // else if(downvelocity_timer.isComplete())
-      // {
-      //   stage = FlightStage::DESCENT;
-      // }
+    else{
+      Serial.println("else");
+    }
+    Serial.println(ascent_timer.timeRemaining());
+    break;
 
-      // if (ascent_timer.isComplete())
-      // {
-      //   stage = FlightStage::STABILIZE;
-      // }
-      
-      // was_above_stabilization = gps.getAltitude() > kSTABILIZATION_ALTITUDE;
-
-    // break;
     case FlightStage::STABILIZE:
     FStage = "STABILIZE";
-    //firePneumaticsByBB(0.0); //input current heading
+    
     collectData();
 
-    if (negVel())
+    if (negVelocity(5))
       {
         stage = FlightStage::DESCENT;
       }
 
-    //TODO:Stabilize
-
-    // if (accelerometer.getGyroZ() > 2)
-    // {
-    //   downvelocity_timer.reset();
-    // }
-    // else if(downvelocity_timer.isComplete())
-    // {
-    //   stage = FlightStage::DESCENT;
-    // }
-
+    fireSolenoidsByBB(0.0); //TODO: Tune / stabilize
     break;
+
     case FlightStage::DESCENT:
     FStage = "DESCENT";
 
       collectData();
 
-      if(novelocity_timer.isComplete() && fabs((beginAlt - gps.getAltitude())) > 10)
+      if(novelocity_timer.isComplete() && fabs((beginAlt - altitude)) > 10)
       {
         novelocity_timer.reset();
-        beginAlt = gps.getAltitude();
+        beginAlt = altitude;
       }
       
-      else if (novelocity_timer.isComplete() && fabs((beginAlt - gps.getAltitude())) < 10)
+      else if (novelocity_timer.isComplete() && fabs((beginAlt - altitude)) < 10)
       {
         stage = FlightStage::LANDED;
       }
@@ -418,6 +435,6 @@ void loop()
     break;
 
     
-  }
   
+  }
 }
