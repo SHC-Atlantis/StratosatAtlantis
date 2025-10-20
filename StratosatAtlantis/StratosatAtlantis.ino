@@ -23,10 +23,12 @@ enum class FlightStage
 
 //Declare variables
 const int kMAIN_LED = 2; //Main LED pin number
-const int kLF_SOLENOID = 4; //Left-Front Solenoid pin number
-const int kLB_SOLENOID = 3; //Left-Back Solenoid pin number
-const int kRF_SOLENOID = 3; //Right-Front Solenoid pin number
-const int kRB_SOLENOID = 4; //Right-Back Solenoid pin number
+const int kLF_SOLENOID = 4; //Left-Front Solenoid pin number CWW
+const int kLB_SOLENOID = 3; //Left-Back Solenoid pin number CC
+const int kRF_SOLENOID = 3; //Right-Front Solenoid pin number CC
+const int kRB_SOLENOID = 4; //Right-Back Solenoid pin number CWW
+const int CCW = 4;
+const int CW = 3;
 
 float altitude = 25000;
 
@@ -60,7 +62,7 @@ Timer ascent_timer(30000); //Timer to remain in ascension for 30s.
 Timer downvelocity_timer(3000); //Timer to track downward velocity for 30s.
 Timer novelocity_timer(30000); //Timer to track absence of velocity for 30s.
 Timer collection_timer(30000); //Timer to track how long it's been since the last collection in the landed phase.
-Timer solenoid_timer(0); //Timer to control the solenoid's rate of fire.
+Timer solenoid_timer(50); //Timer to control the solenoid's rate of fire.
 Timer downveloctiy_timer(1000); //Timer for down vel
 
 //Functions
@@ -91,7 +93,7 @@ void collectData()
       String(accelerometer.getGyroX()) + "," +
       String(accelerometer.getGyroY()) + "," +
       String(accelerometer.getGyroZ()) + "," +
-      String(bme.getHumidity()) + "," +
+      // String(bme.getHumidity()) + "," +
       String(bme.getPressure()) + "," +
       String(bme.getTemperature()) + "," +
       String(gps.getAltitude()) + "," +
@@ -103,7 +105,7 @@ void collectData()
       ;
       
     Serial1.println(data);
-    delay(50);
+    //delay(50);
 } 
 /*
 * Gets the angle of error that the satellite must rotate to
@@ -132,41 +134,120 @@ void fireSolenoidsByPD(PDCycle cycle)
 * @param pos_deg: the current angular position
 * @param tolerance_deg: how much of an angle to allow pos_deg to be off from the target
 */
-void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -5)
+
+void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
 {
-  delay(500);
-  Serial.print("Value: ");
-  Serial.println(getErrorAngle(pos_deg));
-  if (tolerance_deg > (getErrorAngle(pos_deg))) //Rotate clockwise
-  {
-    digitalWrite(kLB_SOLENOID, HIGH);
-    digitalWrite(kRF_SOLENOID, HIGH);
 
-    digitalWrite(kLF_SOLENOID, LOW);
-    digitalWrite(kRB_SOLENOID, LOW);
-    Serial.println("CLOCKWISE");
-  }
-  else if (fabs(tolerance_deg) < (getErrorAngle(pos_deg))) //Rotate counter clockwise
-  {
-    digitalWrite(kLB_SOLENOID, LOW);
-    digitalWrite(kRF_SOLENOID, LOW);
+  delay(50);
+  float target = 45.0;
+  //Serial.print("Value: ");
+  //Serial.println(getErrorAngle(pos_deg));
+  Serial.print("error cal: ");
+  Serial.println(errorCalc(pos_deg, target));
+  Serial.print("orientation: ");
+  Serial.println(accelerometer.getOrientationX());
+  if (solenoid_timer.isComplete()){
+    // Serial.println("COMPLETE");
+    if (errorCalc(pos_deg, target)<0) //Rotate clockwise
+    {
+      digitalWrite(CW, HIGH);
+      // digitalWrite(kRF_SOLENOID, HIGH);
 
-    digitalWrite(kLF_SOLENOID, HIGH);
-    digitalWrite(kRB_SOLENOID, HIGH);
-    Serial.println("COUNTER CLOCKWISE");
+      digitalWrite(CCW, LOW);
+      // digitalWrite(kRB_SOLENOID, LOW);
+      //Serial.print("Orientation: ");
+      //Serial.println(accelerometer.getOrientationX());
+      Serial.println("----------------CLOCKWISE");
+    }
+    else if (errorCalc(pos_deg, target)>0) //Rotate counter clockwise
+    {
+      // digitalWrite(kLB_SOLENOID, LOW);
+      digitalWrite(CW, LOW);
+
+      // digitalWrite(kLF_SOLENOID, HIGH);
+      digitalWrite(CCW, HIGH);
+      // Serial.print("Orientation: ");
+      //Serial.println(accelerometer.getOrientationX());
+      Serial.println("----------------COUNTER CLOCKWISE");
+    }
+    else //Do not rotate
+    {
+      digitalWrite(CW, LOW);
+      digitalWrite(CCW, LOW);
+
+      // digitalWrite(kLF_SOLENOID, LOW);
+      // digitalWrite(kRB_SOLENOID, LOW);
+      // Serial.print("Orientation: ");
+      // Serial.println(accelerometer.getOrientationX());
+      Serial.println("----------------ALIGNED");
+    }
+    solenoid_timer.reset();
   }
   else //Do not rotate
   {
-    digitalWrite(kLB_SOLENOID, LOW);
-    digitalWrite(kRF_SOLENOID, LOW);
+    Serial.println("COMPLETE");
+    digitalWrite(CW, LOW);
+    digitalWrite(CCW, LOW);
 
-    digitalWrite(kLF_SOLENOID, LOW);
-    digitalWrite(kRB_SOLENOID, LOW);
-    Serial.println("ALIGNED");
+    // digitalWrite(kLF_SOLENOID, LOW);
+    // digitalWrite(kRB_SOLENOID, LOW);
   }
-
 }
 
+// void fireSolenoidsByBBGPS(float pos_deg, float tolerance_deg = -10)
+// {
+//   // delay(500);
+//   //Serial.print("Value: ");
+//   //Serial.println(getErrorAngle(pos_deg));
+//   if (solenoid_timer.isComplete()){
+//     if (tolerance_deg > (getErrorAngle(pos_deg))) //Rotate clockwise
+//     {
+//       digitalWrite(CW, HIGH);
+//       // digitalWrite(kRF_SOLENOID, HIGH);
+
+//       digitalWrite(CCW, LOW);
+//       // digitalWrite(kRB_SOLENOID, LOW);
+//       Serial.print("Orientation: ");
+//       Serial.println(accelerometer.getOrientationX());
+//       Serial.println("----------------CLOCKWISE");
+//     }
+//     else if (fabs(tolerance_deg) < (getErrorAngle(pos_deg))) //Rotate counter clockwise
+//     {
+//       // digitalWrite(kLB_SOLENOID, LOW);
+//       digitalWrite(CW, LOW);
+
+//       // digitalWrite(kLF_SOLENOID, HIGH);
+//       digitalWrite(CCW, HIGH);
+//       Serial.print("Orientation: ");
+//       Serial.println(accelerometer.getOrientationX());
+//       Serial.println("----------------COUNTER CLOCKWISE");
+//     }
+//     else //Do not rotate
+//     {
+//       digitalWrite(CW, LOW);
+//       digitalWrite(CCW, LOW);
+
+//       // digitalWrite(kLF_SOLENOID, LOW);
+//       // digitalWrite(kRB_SOLENOID, LOW);
+//       Serial.print("Orientation: ");
+//       Serial.println(accelerometer.getOrientationX());
+//       Serial.println("----------------ALIGNED");
+//     }
+//     solenoid_timer.reset();
+//   }
+//   else //Do not rotate
+//   {
+//     digitalWrite(CW, LOW);
+//     digitalWrite(CCW, LOW);
+
+//     // digitalWrite(kLF_SOLENOID, LOW);
+//     // digitalWrite(kRB_SOLENOID, LOW);
+//   }
+// }
+
+double errorCalc(double current, double target){
+  return ((((int)(current - target)+ 540) % 360)-180);
+}
 
 bool posVelocity(){
   //Serial.print("Current count ------------->");
@@ -356,8 +437,7 @@ void loop()
           stage = FlightStage::DESCENT;
         }
 
-      Serial.print("Orientation");
-      Serial.println(accelerometer.getOrientationX());
+      
       fireSolenoidsByBB(accelerometer.getOrientationX()); //TODO: Tune / stabilize
     break;
 
