@@ -62,9 +62,9 @@ Timer ascent_timer(30000); //Timer to remain in ascension for 30s.
 Timer downvelocity_timer(3000); //Timer to track downward velocity for 30s.
 Timer novelocity_timer(30000); //Timer to track absence of velocity for 30s.
 Timer collection_timer(30000); //Timer to track how long it's been since the last collection in the landed phase.
-Timer solenoid_timer(1000); //Timer to control the solenoid's rate of fire.
+Timer solenoid_timer(1500); //Timer to control the solenoid's rate of fire.
 Timer downveloctiy_timer(1000); //Timer for down vel
-Timer firing_timer(100);
+Timer firing_timer(1550);
 
 //Functions
 
@@ -136,7 +136,7 @@ void fireSolenoidsByPD(PDCycle cycle)
 * @param tolerance_deg: how much of an angle to allow pos_deg to be off from the target
 */
 
-void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
+void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
 {
 
   // delay(50); //-------------------------------------------------------------DELAY-----(don't forget)-----------------------------
@@ -153,7 +153,7 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
   Serial1.println(firing_timer.timeRemaining());
   if (solenoid_timer.isComplete()){
     // Serial.println("COMPLETE");
-    if (errorCalc(pos_deg, target)<tolerance_deg) //Rotate clockwise
+    if ( errorCalc(pos_deg, target) < ((-1) * tolerance_deg) ) //Rotate clockwise
     {
       digitalWrite(CW, HIGH);
       digitalWrite(CCW, LOW);
@@ -163,7 +163,7 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
       //Serial.println(accelerometer.getOrientationX());
       Serial1.println("-------------------------------CLOCKWISE");
     }
-    else if (errorCalc(pos_deg, target)>fabs(tolerance_deg)) //Rotate counter clockwise
+    else if (errorCalc(pos_deg, target)>(tolerance_deg)) //Rotate counter clockwise
     {
       digitalWrite(CW, LOW);
       digitalWrite(CCW, HIGH);
@@ -174,6 +174,7 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
     }
     else //Do not rotate
     {
+      Serial1.print("else statement");
       digitalWrite(CW, LOW);
       digitalWrite(CCW, LOW);
 
@@ -205,56 +206,6 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
   }
 }
 
-// void fireSolenoidsByBBGPS(float pos_deg, float tolerance_deg = -10)
-// {
-//   // delay(500);
-//   //Serial.print("Value: ");
-//   //Serial.println(getErrorAngle(pos_deg));
-//   if (solenoid_timer.isComplete()){
-//     if (tolerance_deg > (getErrorAngle(pos_deg))) //Rotate clockwise
-//     {
-//       digitalWrite(CW, HIGH);
-//       // digitalWrite(kRF_SOLENOID, HIGH);
-
-//       digitalWrite(CCW, LOW);
-//       // digitalWrite(kRB_SOLENOID, LOW);
-//       Serial.print("Orientation: ");
-//       Serial.println(accelerometer.getOrientationX());
-//       Serial.println("----------------CLOCKWISE");
-//     }
-//     else if (fabs(tolerance_deg) < (getErrorAngle(pos_deg))) //Rotate counter clockwise
-//     {
-//       // digitalWrite(kLB_SOLENOID, LOW);
-//       digitalWrite(CW, LOW);
-
-//       // digitalWrite(kLF_SOLENOID, HIGH);
-//       digitalWrite(CCW, HIGH);
-//       Serial.print("Orientation: ");
-//       Serial.println(accelerometer.getOrientationX());
-//       Serial.println("----------------COUNTER CLOCKWISE");
-//     }
-//     else //Do not rotate
-//     {
-//       digitalWrite(CW, LOW);
-//       digitalWrite(CCW, LOW);
-
-//       // digitalWrite(kLF_SOLENOID, LOW);
-//       // digitalWrite(kRB_SOLENOID, LOW);
-//       Serial.print("Orientation: ");
-//       Serial.println(accelerometer.getOrientationX());
-//       Serial.println("----------------ALIGNED");
-//     }
-//     solenoid_timer.reset();
-//   }
-//   else //Do not rotate
-//   {
-//     digitalWrite(CW, LOW);
-//     digitalWrite(CCW, LOW);
-
-//     // digitalWrite(kLF_SOLENOID, LOW);
-//     // digitalWrite(kRB_SOLENOID, LOW);
-//   }
-// }
 
 double errorCalc(double current, double target){
   return ((((int)(current - target)+ 540) % 360)-180);
