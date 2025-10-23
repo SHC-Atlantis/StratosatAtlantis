@@ -19,10 +19,14 @@ enum class FlightStage
   LANDED
 };
 
+
+
 //The front has the camera
 
 //Declare variables
-const int kMAIN_LED = 2; //Main LED pin number
+
+const int kMAIN_LED_1 = 2; //Main LED pin number
+const int kMAIN_LED_2 = 5; //Main LED pin number
 const int kLF_SOLENOID = 4; //Left-Front Solenoid pin number CWW
 const int kLB_SOLENOID = 3; //Left-Back Solenoid pin number CC
 const int kRF_SOLENOID = 3; //Right-Front Solenoid pin number CC
@@ -34,6 +38,7 @@ float altitude = 25000;
 
 int topReached = 0;
 
+float target = 45;
 
 const float kSTABILIZATION_ALTITUDE = 20000.0; //The height required to begin stabilization
 
@@ -51,7 +56,7 @@ String FStage = "INIT";
 
 FlightStage stage;
 
-LED main_LED(kMAIN_LED);
+LED main_LED(kMAIN_LED_1);
 
 SHC_BME280 bme;
 BNO055 accelerometer;
@@ -68,7 +73,8 @@ Timer downveloctiy_timer(1000); //Timer for down vel
 Timer solenoid_timer(75); //Timer to control the solenoid's rate of fire.
 Timer firing_timer(50);
 Timer velocitycap_timer(500);
-
+Timer blinky_on_timer(50);
+Timer blinky_off_timer(1000);
 
 //Functions
 
@@ -119,6 +125,9 @@ void collectData()
 */
 float getErrorAngle(float init_angle_deg)
 {
+
+  
+
   float target_x = 1; //TODO-----------------UPDATE
   float target_y = 1; //TODO-----------------UPDATE
 
@@ -134,7 +143,6 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
 {
 
   // delay(50); //-------------------------------------------------------------DELAY-----(don't forget)-----------------------------
-  float target = 45.0;
   //Serial.print("Value: ");
   //Serial.println(getErrorAngle(pos_deg));
   Serial1.print("error cal: ");
@@ -146,24 +154,6 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
   Serial1.print("Firing timer: ");
   Serial1.println(firing_timer.timeRemaining());
   
-
-  
-  // if(solenoid_timer.isComplete()){
-    
-  //   if(accelerometer.getGyroZ() > 60){
-  //     fireCW();
-  //     velocitycap_timer.reset();
-  //   }
-
-  //   else if(accelerometer.getGyroZ() < -60){
-  //     fireCCW();
-  //     velocitycap_timer.reset();
-  //   }
-
-  //   else if{
-  //   }
-  // }
-
 
   if (solenoid_timer.isComplete()){
 
@@ -361,6 +351,22 @@ bool negVelocity(int time){
 
 //Main code
 
+void ledBlink(){ // FIX THIS :)_______________________________________________________________________________________________
+  if(blinky_off_timer.isComplete()){
+      blinky_on_timer.reset();  
+      digitalWrite(kMAIN_LED_1, HIGH);
+      digitalWrite(kMAIN_LED_2, HIGH);
+      Serial.print("ON");
+    if(blinky_on_timer.isComplete()){
+      
+      blinky_off_timer.reset();
+      digitalWrite(kMAIN_LED_1, LOW);
+      digitalWrite(kMAIN_LED_2, LOW);
+      Serial.print("OFF");
+    }
+  }
+}
+
 void setup() 
 {
   
@@ -370,14 +376,17 @@ void setup()
   //csv file header
   Serial1.println("Stage,UNIX,Year,Month,Day,Hour,Min,Sec,AccX(m/s^2),AccY(m/s^2),AccZ(m/s^2),Yaw(degrees),Roll(degrees),Pitch(degrees),GyroX(deg/s),GyroY(deg/s),GyroZ(deg/s),Humidity(%rh),Pressure(mb),Temperature(C),Altitude(m),ICP-Pressure(kP),ICP-Temperature(C),Lat,Long,SIV,");
 
+
+  pinMode(kMAIN_LED_1, OUTPUT);
   //Initialize variables
   stage = FlightStage::LAUNCH;
- // main_LED = LED(kMAIN_LED_1, 50, 950); // blink 1/20 sec at 1hz
+  LED(kMAIN_LED_1, 50, 950); // blink 1/20 sec at 1hz
+
 
   //Initialize systems
 
-  //pinMode(kMAIN_LED_1, OUTPUT);
-  //pinMode(kMAIN_LED_2, OUTPUT);
+  
+  // pinMode(kMAIN_LED_2, OUTPUT);
 
   //pinMode(kCW_SOLENOID, OUTPUT);
   //pinMode(kCCW_SOLENOID, OUTPUT);
@@ -415,6 +424,7 @@ void setup()
 
 void loop() 
 {
+  target = atan2(-20.9298 + gps.getLongitude(), 65.40232 + gps.getLatitude())/3.141592*180;// Perchance
   // if(altitude < 30000 && topReached == 0){
   //   altitude += 16;
   // }
@@ -492,7 +502,7 @@ void loop()
 
     case FlightStage::STABILIZE:
       FStage = "STABILIZE";
-      
+      ledBlink(); // ------------------------------------------------------------------------------------------------
       collectData();
 
       if (negVelocity(30))
