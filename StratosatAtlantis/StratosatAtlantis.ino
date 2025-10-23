@@ -88,7 +88,7 @@ float getErrorAngle(float init_angle_deg)
 {
   float target_x, target_y;
 
-  return init_angle_deg - tan(target_y / target_x);
+  return (init_angle_deg - atan2(-20.9298 + gps.getLongitude(), 65.40232 + gps.getLatitude()))/3.141592*180; //converts to deg
 }
 
 /*Fires solenoids at a given rate via PD
@@ -138,6 +138,142 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 0.5)
   {
     digitalWrite(kCW_SOLENOID, HIGH);
     digitalWrite(kCCW_SOLENOID, LOW);
+
+  // delay(50); //-------------------------------------------------------------DELAY-----(don't forget)-----------------------------
+  float target = 45.0;
+  //Serial.print("Value: ");
+  //Serial.println(getErrorAngle(pos_deg));
+  Serial1.print("error cal: ");
+  //Serial1.println(errorCalc(pos_deg, target));
+  Serial1.println(getErrorAngle(pos_deg));
+  Serial1.print("orientation: ");
+  Serial1.println(accelerometer.getOrientationX());
+  Serial1.print("Solenoid Timer: ");
+  Serial1.println(solenoid_timer.timeRemaining());
+  Serial1.print("Firing timer: ");
+  Serial1.println(firing_timer.timeRemaining());
+  
+  // if(solenoid_timer.isComplete()){
+    
+  //   if(accelerometer.getGyroZ() > 60){
+  //     fireCW();
+  //     velocitycap_timer.reset();
+  //   }
+
+  //   else if(accelerometer.getGyroZ() < -60){
+  //     fireCCW();
+  //     velocitycap_timer.reset();
+  //   }
+
+  //   else if{
+  //   }
+  // }
+
+
+  if (solenoid_timer.isComplete()){
+
+    Serial.println("SOL TIMER COMPLETE");
+    Serial1.println("SOL TIMER COMPLETE");
+    // if(firing_timer.isComplete()){
+    //   digitalWrite(CW, LOW);
+    //   digitalWrite(CCW, LOW);
+    // }
+
+    if(velocitycap_timer.isComplete()){
+      stopAll();
+    }
+
+    if(firing_timer.isComplete()){
+      stopAll();
+    }
+
+    if(accelerometer.getGyroZ() > 60){
+      fireCW();
+      velocitycap_timer.reset();
+      return;
+    }
+
+    else if(accelerometer.getGyroZ() < -60){
+      fireCCW();
+      velocitycap_timer.reset();
+      return;
+    }
+
+    
+
+    //if (errorCalc(pos_deg, target) < ((-1) * tolerance_deg)) //Rotate clockwise
+    if (getErrorAngle(pos_deg) < -tolerance_deg)
+    {      
+      if(accelerometer.getGyroZ() > 15){
+        Serial.println("not CW");
+        Serial1.println("not CW");
+        return;
+      }
+      else{
+        Serial.println("FiredCW");
+        Serial1.println("FiredCW");
+        
+        fireCW();
+        firing_timer.reset();
+        return;
+      }
+
+      //Serial.print("Orientation: ");
+      //Serial.println(accelerometer.getOrientationX());
+      Serial.println("-------------------------------CLOCKWISE");
+      Serial1.println("-------------------------------CLOCKWISE");
+    }
+    //else if (errorCalc(pos_deg, target)>(tolerance_deg)) //Rotate counter clockwise
+    if (getErrorAngle(pos_deg) > tolerance_deg)
+    {
+      if(accelerometer.getGyroZ() < -15){
+        Serial.println("not CCW");
+        Serial1.println("not CCW");
+        return;
+      }
+      else{
+        Serial.println("FiredCCW");
+        Serial1.println("FiredCCW");
+        fireCCW();
+        firing_timer.reset();
+        return;
+      }
+
+      Serial.println("-------------------------------COUNTER CLOCKWISE");
+      Serial1.println("-------------------------------COUNTER CLOCKWISE");
+    }
+    else //Do not rotate
+    {
+      stopAll();
+
+      Serial.println("-------------------------------ALIGNED");
+      Serial1.println("-------------------------------ALIGNED");
+    }
+    // firing_timer.reset();
+    // if (firing_timer.isComplete() && solenoid_timer.isComplete()){
+    //   Serial.println("THE IF");
+    //   Serial1.println("THE IF");
+
+    //   if((errorCalc(pos_deg, target)<(tolerance_deg)) && (errorCalc(pos_deg, target) < ((-1) * tolerance_deg))){
+    //     stopAll();
+    //   }
+    //   stopAll();
+    //   //digitalWrite(CW, LOW);
+    //   //digitalWrite(CCW, LOW);
+    // }
+
+    
+  }
+  
+  else //Do not rotate
+  {
+    Serial.println("_________________________________________________________________TIMER NOT COMPLETE");
+    Serial1.println("solenoid_timer");
+    Serial1.println(solenoid_timer.timeRemaining());
+    // stopAll();
+
+    // digitalWrite(kLF_SOLENOID, LOW);
+    // digitalWrite(kRB_SOLENOID, LOW);
   }
   else if (pos_deg < (getErrorAngle(pos_deg) - tolerance_deg)) //Rotate counter clockwise
   {
