@@ -1,4 +1,5 @@
 #include "LED.h"
+#include <arduino.h>
 
 LED::LED(int LED_pin, unsigned long length_ms, unsigned long delay_ms)
 	: m_pin(LED_pin)

@@ -6,7 +6,7 @@ class PDCycle
   {
     Percent,
     Direct
-  }
+  };
 
   OutputType m_output_type;
 
