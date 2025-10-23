@@ -146,13 +146,34 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
   Serial1.print("Firing timer: ");
   Serial1.println(firing_timer.timeRemaining());
   
+  // if(solenoid_timer.isComplete()){
+    
+  //   if(accelerometer.getGyroZ() > 60){
+  //     fireCW();
+  //     velocitycap_timer.reset();
+  //   }
+
+  //   else if(accelerometer.getGyroZ() < -60){
+  //     fireCCW();
+  //     velocitycap_timer.reset();
+  //   }
+
+  //   else if{
+  //   }
+  // }
 
 
   if (solenoid_timer.isComplete()){
 
-    if(firing_timer.isComplete()){
+    // if(firing_timer.isComplete()){
+    //   digitalWrite(CW, LOW);
+    //   digitalWrite(CCW, LOW);
+    // }
+
+    if(velocitycap_timer.isComplete()){
       digitalWrite(CW, LOW);
       digitalWrite(CCW, LOW);
+      
     }
 
     if(accelerometer.getGyroZ() > 60){
@@ -169,23 +190,11 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
       return;
     }
 
-    // if(velocitycap_timer.isComplete()){
-    //   digitalWrite(CW, LOW);
-    //   digitalWrite(CCW, LOW);
-    //   return;
-    // }
-
     Serial.println("SOL TIMER COMPLETE");
     Serial1.println("SOL TIMER COMPLETE");
-    
-    if ( errorCalc(pos_deg, target) < ((-1) * tolerance_deg) ) //Rotate clockwise
-    {
 
-      // Serial.println(accelerometer.getGyroZ());
-      // Serial.println(accelerometer.getGyroZ() < -15);
-      // Serial1.println(accelerometer.getGyroZ());
-      // Serial1.println(accelerometer.getGyroZ() < -15);
-      
+    if ( errorCalc(pos_deg, target) < ((-1) * tolerance_deg) ) //Rotate clockwise
+    {      
       if(accelerometer.getGyroZ() > 15){
         Serial.println("not CW");
         Serial1.println("not CW");
@@ -249,10 +258,10 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
       }
       //digitalWrite(CW, LOW);
       //digitalWrite(CCW, LOW);
-
-      solenoid_timer.reset();
-      firing_timer.reset();
     }
+
+    solenoid_timer.reset();
+    firing_timer.reset();
   }
   
   else //Do not rotate
@@ -272,6 +281,21 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
   Serial.println(solenoid_timer.timeRemaining());
 }
 
+
+// void fireCW(){
+//   digitalWrite(CW, HIGH);
+//   digitalWrite(CCW, LOW);
+// }
+
+// void fireCCW(){
+//   digitalWrite(CWW, HIGH);
+//   digitalWrite(CW, LOW);
+// }
+
+// void stopAll(){
+//   digitalWrite(CW, LOW);
+//   digitalWrite(CCW, LOW);
+// }
 
 double errorCalc(double current, double target){
   return ((((int)(current - target)+ 540) % 360)-180);
