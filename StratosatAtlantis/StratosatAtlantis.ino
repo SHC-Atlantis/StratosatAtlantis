@@ -65,7 +65,7 @@ Timer downvelocity_timer(3000); //Timer to track downward velocity for 30s.
 Timer novelocity_timer(30000); //Timer to track absence of velocity for 30s.
 Timer collection_timer(30000); //Timer to track how long it's been since the last collection in the landed phase.
 Timer downveloctiy_timer(1000); //Timer for down vel
-Timer solenoid_timer(150); //Timer to control the solenoid's rate of fire.
+Timer solenoid_timer(75); //Timer to control the solenoid's rate of fire.
 Timer firing_timer(50);
 Timer velocitycap_timer(500);
 
@@ -146,6 +146,8 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
   Serial1.print("Firing timer: ");
   Serial1.println(firing_timer.timeRemaining());
   
+
+  
   // if(solenoid_timer.isComplete()){
     
   //   if(accelerometer.getGyroZ() > 60){
@@ -183,12 +185,14 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
     if(accelerometer.getGyroZ() > 60){
       fireCW();
       velocitycap_timer.reset();
+      Serial1.println("over 60");
       return;
     }
 
     else if(accelerometer.getGyroZ() < -60){
       fireCCW();
       velocitycap_timer.reset();
+      Serial1.println("under -60");
       return;
     }
 
@@ -196,10 +200,11 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
 
     if (errorCalc(pos_deg, target) < ((-1) * tolerance_deg)) //Rotate clockwise
     {      
-      if(accelerometer.getGyroZ() > 15){
+      if(accelerometer.getGyroZ() < -10){
         Serial.println("not CW");
         Serial1.println("not CW");
         return;
+      
       }
       else{
         Serial.println("FiredCW");
@@ -212,32 +217,33 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
 
       //Serial.print("Orientation: ");
       //Serial.println(accelerometer.getOrientationX());
-      Serial.println("-------------------------------CLOCKWISE");
+      Serial1.println("-------------------------------CLOCKWISE");
       Serial1.println("-------------------------------CLOCKWISE");
     }
     else if (errorCalc(pos_deg, target)>(tolerance_deg)) //Rotate counter clockwise
     {
-      if(accelerometer.getGyroZ() < -15){
-        Serial.println("not CCW");
+      if(accelerometer.getGyroZ() > 10){
+        Serial1.println("not CCW");
         Serial1.println("not CCW");
         return;
       }
       else{
-        Serial.println("FiredCCW");
+        Serial1.println("FiredCCW");
         Serial1.println("FiredCCW");
         fireCCW();
         firing_timer.reset();
         return;
       }
 
-      Serial.println("-------------------------------COUNTER CLOCKWISE");
+      Serial1.println("-------------------------------COUNTER CLOCKWISE");
       Serial1.println("-------------------------------COUNTER CLOCKWISE");
     }
     else //Do not rotate
     {
       stopAll();
 
-      Serial.println("-------------------------------ALIGNED");
+
+      Serial1.println("-------------------------------ALIGNED");
       Serial1.println("-------------------------------ALIGNED");
     }
     // firing_timer.reset();
@@ -258,37 +264,40 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
   
   else //Do not rotate
   {
-    Serial.println("_________________________________________________________________TIMER NOT COMPLETE");
+    Serial1.println("_________________________________________________________________TIMER NOT COMPLETE");
     Serial1.println("solenoid_timer");
     Serial1.println(solenoid_timer.timeRemaining());
     // stopAll();
 
+
+
+
     // digitalWrite(kLF_SOLENOID, LOW);
     // digitalWrite(kRB_SOLENOID, LOW);
   }
-  Serial.print("Gyro: ");
-  Serial.println(accelerometer.getGyroZ());
-  Serial.print("Solenoid Timer: ");
-  Serial.println(solenoid_timer.timeRemaining());
+  Serial1.print("Gyro: ");
+  Serial1.println(accelerometer.getGyroZ());
+  Serial1.print("Solenoid Timer: ");
+  Serial1.println(solenoid_timer.timeRemaining());
 }
 
 
 void fireCW(){
   digitalWrite(CW, HIGH);
   digitalWrite(CCW, LOW);
-  Serial.println("CW");
+  Serial1.println("CW");
 }
 
 void fireCCW(){
   digitalWrite(CCW, HIGH);
   digitalWrite(CW, LOW);
-  Serial.println("CCW");
+  Serial1.println("CCW");
 }
 
 void stopAll(){
   digitalWrite(CW, LOW);
   digitalWrite(CCW, LOW);
-  Serial.println("STOP");
+  Serial1.println("STOP");
 }
 
 
