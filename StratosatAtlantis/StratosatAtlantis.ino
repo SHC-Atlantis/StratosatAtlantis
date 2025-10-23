@@ -199,8 +199,8 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
     
 
     if (errorCalc(pos_deg, target) < ((-1) * tolerance_deg)) //Rotate clockwise
-    {      
-      if(accelerometer.getGyroZ() < -10){
+    {  
+      if((accelerometer.getGyroZ() < -10) || ((errorCalc(pos_deg, target)>(-20)) && (accelerometer.getGyroZ() < 0))){
         Serial.println("not CW");
         Serial1.println("not CW");
         return;
@@ -222,7 +222,7 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
     }
     else if (errorCalc(pos_deg, target)>(tolerance_deg)) //Rotate counter clockwise
     {
-      if(accelerometer.getGyroZ() > 10){
+      if((accelerometer.getGyroZ() > 10) || ((errorCalc(pos_deg, target)>(20)) && (accelerometer.getGyroZ() > 0))){
         Serial1.println("not CCW");
         Serial1.println("not CCW");
         return;
@@ -238,6 +238,8 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
       Serial1.println("-------------------------------COUNTER CLOCKWISE");
       Serial1.println("-------------------------------COUNTER CLOCKWISE");
     }
+
+    
     else //Do not rotate
     {
       stopAll();
