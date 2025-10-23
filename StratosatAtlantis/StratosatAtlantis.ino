@@ -203,6 +203,7 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
       if((accelerometer.getGyroZ() < -10) || ((errorCalc(pos_deg, target)>(-20)) && (accelerometer.getGyroZ() < 0))){
         Serial.println("not CW");
         Serial1.println("not CW");
+        stopAll();
         return;
       
       }
@@ -225,6 +226,7 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
       if((accelerometer.getGyroZ() > 10) || ((errorCalc(pos_deg, target)>(20)) && (accelerometer.getGyroZ() > 0))){
         Serial1.println("not CCW");
         Serial1.println("not CCW");
+        stopAll();
         return;
       }
       else{
