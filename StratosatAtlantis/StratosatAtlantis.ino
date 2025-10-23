@@ -87,8 +87,9 @@ void collectData()
 float getErrorAngle(float init_angle_deg)
 {
   float target_x, target_y;
+  // float target = atan2(-20.9298 + gps.getLongitude(), 65.40232 + gps.getLatitude())/3.141592*180;// Perchance
 
-  return (init_angle_deg - atan2(-20.9298 + gps.getLongitude(), 65.40232 + gps.getLatitude()))/3.141592*180; //converts to deg
+  return (init_angle_deg - atan2(-20.9298 + gps.getLongitude(), 65.40232 + gps.getLatitude())/3.141592*180); //converts to deg
 }
 
 /*Fires solenoids at a given rate via PD
