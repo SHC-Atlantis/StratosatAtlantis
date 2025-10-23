@@ -27,8 +27,8 @@ const int kLF_SOLENOID = 4; //Left-Front Solenoid pin number CWW
 const int kLB_SOLENOID = 3; //Left-Back Solenoid pin number CC
 const int kRF_SOLENOID = 3; //Right-Front Solenoid pin number CC
 const int kRB_SOLENOID = 4; //Right-Back Solenoid pin number CWW
-const int CCW =5;
-const int CW = 2;
+const int CCW = 4;
+const int CW = 3;
 
 float altitude = 25000;
 
@@ -64,10 +64,11 @@ Timer ascent_timer(30000); //Timer to remain in ascension for 30s.
 Timer downvelocity_timer(3000); //Timer to track downward velocity for 30s.
 Timer novelocity_timer(30000); //Timer to track absence of velocity for 30s.
 Timer collection_timer(30000); //Timer to track how long it's been since the last collection in the landed phase.
-Timer solenoid_timer(800); //Timer to control the solenoid's rate of fire.
 Timer downveloctiy_timer(1000); //Timer for down vel
-Timer firing_timer(750);
+Timer solenoid_timer(750); //Timer to control the solenoid's rate of fire.
+Timer firing_timer(700);
 Timer velocitycap_timer(500);
+
 
 //Functions
 
@@ -78,10 +79,11 @@ void collectData()
 {
   
   ICP.getData(pressure_kP,temperature_C);
-  // Serial.println("Stage,Year,Month,Day,Hour,Min,Sec,AccX(m/s^2),AccY(m/s^2),AccZ(m/s^2),Yaw(degrees),Roll(degrees),Pitch(degrees),GyroX(deg/s),GyroY(deg/s),GyroZ(deg/s),Humidity(%rh),Pressure(mb),Temperature(C),Altitude(m),ICP-Pressure(kP),ICP-Temperature(C),Lat,Long,SIV,");
+  // Serial.println("Stage, UNIX, Year,Month,Day,Hour,Min,Sec,AccX(m/s^2),AccY(m/s^2),AccZ(m/s^2),Yaw(degrees),Roll(degrees),Pitch(degrees),GyroX(deg/s),GyroY(deg/s),GyroZ(deg/s),Humidity(%rh),Pressure(mb),Temperature(C),Altitude(m),ICP-Pressure(kP),ICP-Temperature(C),Lat,Long,SIV,");
   // Stage,Year,Month,Day,Time,Minute,Second,AccX,AccY,AccZ,OrientX,OrientY,OrientZ,GyroX,GyroY,GyroZ,Humidity,Pressure,Temperature,Altitude,Pressure,Temperature,Altitude,Latitude,Longitude,SIV
   String data = ""+
       String(FStage) + "," +
+      String(gps.getUnixTime()) + "," +
       String(gps.getYear()) + "," +
       String(gps.getMonth()) + "," +
       String(gps.getDay()) + "," +
@@ -123,17 +125,6 @@ float getErrorAngle(float init_angle_deg)
   return init_angle_deg - atan2(target_y,target_x)/3.141592*180; //converts to deg
 }
 
-/*Fires solenoids in pairs at a given rate via PD
-* + -> clockwise
-* - -> counterclockwise
-* @param rate: the rate to fire the solenoids. 
-*/
-void fireSolenoidsByPD(PDCycle cycle)
-{
-  
-
-}
-
 /*Fires solenoids in pairs based upon the angular position relative to the target position via BangBang
 * @param pos_deg: the current angular position
 * @param tolerance_deg: how much of an angle to allow pos_deg to be off from the target
@@ -154,35 +145,46 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
   Serial1.println(solenoid_timer.timeRemaining());
   Serial1.print("Firing timer: ");
   Serial1.println(firing_timer.timeRemaining());
-
-  // if(velocitycap_timer.isComplete() && (abs(accelerometer.getGyroX()) > velocityCap)){
-  //   if(accelerometer.getGyroX() > velocityCap){
-  //     digitalWrite(CW, LOW);
-  //     digitalWrite(CCW, HIGH);
-  //   }
-  //   else if(accelerometer.getGyroX() < ((-1)*velocityCap)){
-      
-  //     digitalWrite(CW, HIGH);
-  //     digitalWrite(CCW, LOW);
-  //   }
-  //   else{
-  //     digitalWrite(CW, LOW);
-  //     digitalWrite(CCW, LOW);
-  //   } 
-  //   velocitycap_timer.reset();
-  // }
   
+
+
   if (solenoid_timer.isComplete()){
+
+    if(firing_timer.isComplete()){
+      digitalWrite(CW, LOW);
+      digitalWrite(CCW, LOW);
+    }
+
+    if(accelerometer.getGyroZ() > 60){
+      digitalWrite(CW, HIGH);
+      digitalWrite(CCW, LOW);
+      velocitycap_timer.reset();
+      return;
+    }
+
+    else if(accelerometer.getGyroZ() < -60){
+      digitalWrite(CW, LOW);
+      digitalWrite(CCW, HIGH);
+      velocitycap_timer.reset();
+      return;
+    }
+
+    // if(velocitycap_timer.isComplete()){
+    //   digitalWrite(CW, LOW);
+    //   digitalWrite(CCW, LOW);
+    //   return;
+    // }
 
     Serial.println("SOL TIMER COMPLETE");
     Serial1.println("SOL TIMER COMPLETE");
+    
     if ( errorCalc(pos_deg, target) < ((-1) * tolerance_deg) ) //Rotate clockwise
     {
 
-      Serial.println(accelerometer.getGyroZ());
-      Serial.println(accelerometer.getGyroZ() < -15);
-      Serial1.println(accelerometer.getGyroZ());
-      Serial1.println(accelerometer.getGyroZ() < -15);
+      // Serial.println(accelerometer.getGyroZ());
+      // Serial.println(accelerometer.getGyroZ() < -15);
+      // Serial1.println(accelerometer.getGyroZ());
+      // Serial1.println(accelerometer.getGyroZ() < -15);
       
       if(accelerometer.getGyroZ() > 15){
         Serial.println("not CW");
@@ -193,6 +195,8 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
         Serial1.println("FiredCW");
         digitalWrite(CW, HIGH);
         digitalWrite(CCW, LOW);
+        firing_timer.reset();
+        return;
       }
 
       //Serial.print("Orientation: ");
@@ -207,10 +211,12 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
         Serial1.println("not CCW");
       }
       else{
-      Serial.println("FiredCCW");
-      Serial1.println("FiredCCW");
-      digitalWrite(CW, LOW);
-      digitalWrite(CCW, HIGH);
+        Serial.println("FiredCCW");
+        Serial1.println("FiredCCW");
+        digitalWrite(CW, LOW);
+        digitalWrite(CCW, HIGH);
+        firing_timer.reset();
+        return;
       }
 
       // Serial.print("Orientation: ");
@@ -236,13 +242,17 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
     if (firing_timer.isComplete() && solenoid_timer.isComplete()){
       Serial.println("THE IF");
       Serial1.println("THE IF");
-      digitalWrite(CW, LOW);
-      digitalWrite(CCW, LOW);
+
+      if((errorCalc(pos_deg, target)<(tolerance_deg)) && (errorCalc(pos_deg, target) < ((-1) * tolerance_deg))){
+        digitalWrite(CW, LOW);
+        digitalWrite(CCW, LOW);
+      }
+      //digitalWrite(CW, LOW);
+      //digitalWrite(CCW, LOW);
+
       solenoid_timer.reset();
       firing_timer.reset();
-      
     }
-    
   }
   
   else //Do not rotate
@@ -326,7 +336,7 @@ void setup()
   Serial1.begin(115200);
 
   //csv file header
-  Serial1.println("Stage,Year,Month,Day,Hour,Min,Sec,AccX(m/s^2),AccY(m/s^2),AccZ(m/s^2),Yaw(degrees),Roll(degrees),Pitch(degrees),GyroX(deg/s),GyroY(deg/s),GyroZ(deg/s),Humidity(%rh),Pressure(mb),Temperature(C),Altitude(m),ICP-Pressure(kP),ICP-Temperature(C),Lat,Long,SIV,");
+  Serial1.println("Stage,UNIX,Year,Month,Day,Hour,Min,Sec,AccX(m/s^2),AccY(m/s^2),AccZ(m/s^2),Yaw(degrees),Roll(degrees),Pitch(degrees),GyroX(deg/s),GyroY(deg/s),GyroZ(deg/s),Humidity(%rh),Pressure(mb),Temperature(C),Altitude(m),ICP-Pressure(kP),ICP-Temperature(C),Lat,Long,SIV,");
 
   //Initialize variables
   stage = FlightStage::LAUNCH;
@@ -453,7 +463,7 @@ void loop()
       
       collectData();
 
-      if (negVelocity(5))
+      if (negVelocity(30))
         {
           stage = FlightStage::DESCENT;
         }
@@ -467,13 +477,13 @@ void loop()
 
       collectData();
 
-      if(novelocity_timer.isComplete() && fabs((beginAlt - altitude)) > 10)
+      if(novelocity_timer.isComplete() && abs((beginAlt - altitude)) > 10)
       {
         novelocity_timer.reset();
         beginAlt = altitude;
       }
       
-      else if (novelocity_timer.isComplete() && fabs((beginAlt - altitude)) < 10)
+      else if (novelocity_timer.isComplete() && abs((beginAlt - altitude)) < 10)
       {
         stage = FlightStage::LANDED;
       }
@@ -488,9 +498,8 @@ void loop()
         collection_timer.reset();
       }
     default:
-    break;
-
-    
+      collectData();
+      Serial1.println("Default");
   
   }
 }
