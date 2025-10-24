@@ -19,8 +19,6 @@ enum class FlightStage
   LANDED
 };
 
-<<<<<<< Updated upstream
-=======
 enum class SolenoidSetting
 {
   CW,
@@ -28,7 +26,6 @@ enum class SolenoidSetting
   OFF
 };
 
->>>>>>> Stashed changes
 //The front has the camera
 
 //Declare variables
@@ -44,10 +41,7 @@ float altitude = 25000.0;
 
 int topReached = 0;
 
-<<<<<<< Updated upstream
-=======
 float target = -144; //Orient to -144 degrees by default
->>>>>>> Stashed changes
 
 const float kSTABILIZATION_ALTITUDE = 20000.0; //The height required to begin stabilization
 
@@ -174,7 +168,6 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
   Serial1.println(firing_timer.timeRemaining());
   if (solenoid_timer.isComplete()){
 
-<<<<<<< Updated upstream
     if (errorCalc(pos_deg, target)<tolerance_deg) //Rotate clockwise
     {
       digitalWrite(CW, HIGH);
@@ -186,7 +179,8 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
     {
       digitalWrite(CW, LOW);
       digitalWrite(CCW, HIGH);
-=======
+    }
+
     Serial1.print("TARGET VALUE-------------------------------------------------------------------------->");
     Serial1.println(target);
 
@@ -275,7 +269,6 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
         firing_timer.reset();
         return;
       }
->>>>>>> Stashed changes
 
       Serial1.println("-------------------------------COUNTER CLOCKWISE");
     }
@@ -287,13 +280,12 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
       Serial1.println("-------------------------------ALIGNED");
     }
     // firing_timer.reset();
-<<<<<<< Updated upstream
     if (firing_timer.isComplete()){
       digitalWrite(CW, LOW);
       digitalWrite(CCW, LOW);
       solenoid_timer.reset();
       firing_timer.reset();
-=======
+    }
     // if (firing_timer.isComplete() && solenoid_timer.isComplete()){
     //   Serial.println("THE IF");
     //   Serial1.println("THE IF");
@@ -317,7 +309,6 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
     else if (rotate_ccw && dont_rotate)
     {
       Serial.println("Rotating Counterclockwise AND Not Rotating");
->>>>>>> Stashed changes
     }
     
   }
@@ -461,11 +452,8 @@ void loop()
         Serial.println("----------- stabilize");
         stage = FlightStage::STABILIZE;
       }
-<<<<<<< Updated upstream
-=======
       
       //was_above_stabilization = altitude > kSTABILIZATION_ALTITUDE;
->>>>>>> Stashed changes
 
       else if (negVelocity(10))
       {
