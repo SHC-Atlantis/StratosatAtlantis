@@ -19,6 +19,16 @@ enum class FlightStage
   LANDED
 };
 
+<<<<<<< Updated upstream
+=======
+enum class SolenoidSetting
+{
+  CW,
+  CCW,
+  OFF
+};
+
+>>>>>>> Stashed changes
 //The front has the camera
 
 //Declare variables
@@ -34,6 +44,10 @@ float altitude = 25000.0;
 
 int topReached = 0;
 
+<<<<<<< Updated upstream
+=======
+float target = -144; //Orient to -144 degrees by default
+>>>>>>> Stashed changes
 
 const float kSTABILIZATION_ALTITUDE = 20000.0; //The height required to begin stabilization
 
@@ -49,7 +63,13 @@ String FStage = "INIT";
 
 FlightStage stage;
 
+<<<<<<< Updated upstream
 LED main_LED(kMAIN_LED);
+=======
+SolenoidSetting fire_setting;
+
+LED main_LED(kMAIN_LED_1);
+>>>>>>> Stashed changes
 
 SHC_BME280 bme;
 BNO055 accelerometer;
@@ -138,6 +158,9 @@ void fireSolenoidsByPD(PDCycle cycle)
 
 void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
 {
+  bool rotate_cw = false;
+  bool rotate_ccw = false;
+  bool dont_rotate = false;
 
   // delay(50); //-------------------------------------------------------------DELAY-----(don't forget)-----------------------------
   float target = 45.0;
@@ -151,6 +174,7 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
   Serial1.println(firing_timer.timeRemaining());
   if (solenoid_timer.isComplete()){
 
+<<<<<<< Updated upstream
     if (errorCalc(pos_deg, target)<tolerance_deg) //Rotate clockwise
     {
       digitalWrite(CW, HIGH);
@@ -162,6 +186,96 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
     {
       digitalWrite(CW, LOW);
       digitalWrite(CCW, HIGH);
+=======
+    Serial1.print("TARGET VALUE-------------------------------------------------------------------------->");
+    Serial1.println(target);
+
+    Serial.println("SOL TIMER COMPLETE");
+    Serial1.println("SOL TIMER COMPLETE");
+    // if(firing_timer.isComplete()){
+    //   digitalWrite(CW, LOW);
+    //   digitalWrite(CCW, LOW);
+    // }
+
+    if(velocitycap_timer.isComplete()){
+      //stopAll();
+      fire_setting = SolenoidSetting::OFF;
+      dont_rotate = true;
+    }
+
+    if(firing_timer.isComplete()){
+      //stopAll();
+      fire_setting = SolenoidSetting::OFF;
+      dont_rotate = true;
+    }
+
+    if(accelerometer.getGyroZ() > 60){
+      //fireCW();
+      fire_setting = SolenoidSetting::CW;
+      rotate_cw = true;
+      velocitycap_timer.reset();
+      Serial1.println("over 60");
+      return;
+    }
+
+    else if(accelerometer.getGyroZ() < -60){
+      //fireCCW();
+      fire_setting = SolenoidSetting::CCW;
+      rotate_ccw = true;
+      velocitycap_timer.reset();
+      Serial1.println("under -60");
+      return;
+    }
+
+    
+
+    if (errorCalc(pos_deg, target) < ((-1) * tolerance_deg)) //Rotate clockwise
+    {  
+      if((accelerometer.getGyroZ() < -10) || ((errorCalc(pos_deg, target)>(-20)) && (accelerometer.getGyroZ() < 0))){
+        Serial.println("not CW");
+        Serial1.println("not CW");
+        //stopAll();
+        fire_setting = SolenoidSetting::OFF;
+        dont_rotate = true;
+        return;
+      
+      }
+      else{
+        Serial.println("FiredCW");
+        Serial1.println("FiredCW");
+        
+        //fireCW();
+        fire_setting = SolenoidSetting::CW;
+        rotate_cw = true;
+        firing_timer.reset();
+        return;
+      }
+
+      //Serial.print("Orientation: ");
+      //Serial.println(accelerometer.getOrientationX());
+      Serial1.println("-------------------------------CLOCKWISE");
+      Serial1.println("-------------------------------CLOCKWISE");
+    }
+    else if (errorCalc(pos_deg, target)>(tolerance_deg)) //Rotate counter clockwise
+    {
+      if((accelerometer.getGyroZ() > 10) || ((errorCalc(pos_deg, target)>(20)) && (accelerometer.getGyroZ() > 0))){
+        Serial1.println("not CCW");
+        Serial1.println("not CCW");
+        //stopAll();
+        fire_setting = SolenoidSetting::OFF;
+        dont_rotate = true;
+        return;
+      }
+      else{
+        Serial1.println("FiredCCW");
+        Serial1.println("FiredCCW");
+        //fireCCW();
+        fire_setting = SolenoidSetting::CCW;
+        rotate_ccw = true;
+        firing_timer.reset();
+        return;
+      }
+>>>>>>> Stashed changes
 
       Serial1.println("-------------------------------COUNTER CLOCKWISE");
     }
@@ -173,11 +287,37 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = -10)
       Serial1.println("-------------------------------ALIGNED");
     }
     // firing_timer.reset();
+<<<<<<< Updated upstream
     if (firing_timer.isComplete()){
       digitalWrite(CW, LOW);
       digitalWrite(CCW, LOW);
       solenoid_timer.reset();
       firing_timer.reset();
+=======
+    // if (firing_timer.isComplete() && solenoid_timer.isComplete()){
+    //   Serial.println("THE IF");
+    //   Serial1.println("THE IF");
+
+    //   if((errorCalc(pos_deg, target)<(tolerance_deg)) && (errorCalc(pos_deg, target) < ((-1) * tolerance_deg))){
+    //     stopAll();
+    //   }
+    //   stopAll();
+    //   //digitalWrite(CW, LOW);
+    //   //digitalWrite(CCW, LOW);
+    // }
+
+    if (rotate_cw && rotate_ccw)
+    {
+      Serial.println("Rotating Clockwise AND Counterclockwise");
+    }
+    else if (rotate_cw && dont_rotate)
+    {
+      Serial.println("Rotating Clockwise AND Not Rotating");
+    }
+    else if (rotate_ccw && dont_rotate)
+    {
+      Serial.println("Rotating Counterclockwise AND Not Rotating");
+>>>>>>> Stashed changes
     }
     
   }
@@ -321,6 +461,11 @@ void loop()
         Serial.println("----------- stabilize");
         stage = FlightStage::STABILIZE;
       }
+<<<<<<< Updated upstream
+=======
+      
+      //was_above_stabilization = altitude > kSTABILIZATION_ALTITUDE;
+>>>>>>> Stashed changes
 
       else if (negVelocity(10))
       {
@@ -378,5 +523,21 @@ void loop()
 
     
   
+  }
+
+  //Control firing based off of enum setting
+  switch (fire_setting)
+  {
+    case SolenoidSetting::CW:
+      fireCW();
+      break;
+    case SolenoidSetting::CCW:
+      fireCCW();
+      break;
+    case SolenoidSetting::OFF:
+      stopAll();
+      break;
+    default:
+      break;
   }
 }
