@@ -38,7 +38,7 @@ float altitude = 25000;
 
 int topReached = 0;
 
-float target = 45;
+float target = 0;
 
 const float kSTABILIZATION_ALTITUDE = 20000.0; //The height required to begin stabilization
 
@@ -111,8 +111,8 @@ void collectData()
       String(gps.getAltitude()) + "," +
       String(pressure_kP) + "," +
       String(temperature_C) + "," +
-      String(gps.getLatitude()) + "," +
-      String(gps.getLongitude())  + "," +
+      String(gps.getLatitude(), 5) + "," +
+      String(gps.getLongitude(), 5)  + "," +
       String(gps.getSIV()) + ","
       ;
       
@@ -156,6 +156,9 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
   
 
   if (solenoid_timer.isComplete()){
+
+    Serial1.print("TARGET VALUE-------------------------------------------------------------------------->");
+    Serial1.println(target);
 
     Serial.println("SOL TIMER COMPLETE");
     Serial1.println("SOL TIMER COMPLETE");
@@ -235,6 +238,7 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
     else //Do not rotate
     {
       stopAll();
+      firing_timer.reset();
 
 
       Serial1.println("-------------------------------ALIGNED");
@@ -353,22 +357,24 @@ bool negVelocity(int time){
 
 void ledBlink(){ // FIX THIS :)_______________________________________________________________________________________________
   if(blinky_off_timer.isComplete()){
-      blinky_on_timer.reset();  
+      blinky_on_timer.reset(); 
       digitalWrite(kMAIN_LED_1, HIGH);
       digitalWrite(kMAIN_LED_2, HIGH);
       Serial.print("ON");
-    if(blinky_on_timer.isComplete()){
-      
       blinky_off_timer.reset();
+  }
+  else if(blinky_on_timer.isComplete()){
       digitalWrite(kMAIN_LED_1, LOW);
       digitalWrite(kMAIN_LED_2, LOW);
       Serial.print("OFF");
     }
   }
-}
+
 
 void setup() 
 {
+  
+
   
   Serial.begin(9600);
   Serial1.begin(115200);
@@ -412,6 +418,7 @@ void setup()
   error_stored = ICP.begin(); //Init ICP
   error_amount += error_stored;
   ICP.start();
+  // THIS DOESNT WORK______________________________________________________________________
 
   Serial.println("ICP: ") + String(error_stored);
 
@@ -419,12 +426,32 @@ void setup()
   
 
   lastAlt = gps.getAltitude();
-  stage = FlightStage::STABILIZE; //__________________________________________________________________________DELETE_______________________
+  stage = FlightStage::STABILIZE;
+  delay(10000); //TODO__________________________________________________________________________DELETE_______________________
 }
 
 void loop() 
 {
-  target = atan2(-20.9298 + gps.getLongitude(), 65.40232 + gps.getLatitude())/3.141592*180;// Perchance
+
+  float newLat = 33.838608970097575;
+  float oldLat = gps.getLatitude();
+  float newLong = -87.2802887655786;
+  float oldLong = gps.getLongitude();
+
+  float longDiff = newLong - oldLong;
+  float latDiff = newLat - oldLat;
+
+  Serial1.print("aquiredLat:");
+  Serial1.println(oldLat);
+  Serial1.print("aquiredLong");
+  Serial1.println(oldLong);
+
+  Serial1.print("long: ");
+  Serial1.println(longDiff);
+  Serial1.print("lat: ");
+  Serial1.println(latDiff);
+  //target = (atan2(-97.53749 + gps.getLatitude(), 35.49913 + gps.getLongitude())/3.141592*180);// Perchance
+  target = (atan2((newLong - oldLong), (newLat - oldLat)) / 3.141592 * 180);
   // if(altitude < 30000 && topReached == 0){
   //   altitude += 16;
   // }
@@ -516,6 +543,7 @@ void loop()
         solenoid_timer.reset();
         firing_timer.reset();
       }
+      
     break;
 
     case FlightStage::DESCENT:
