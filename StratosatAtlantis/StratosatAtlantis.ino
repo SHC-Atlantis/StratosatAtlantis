@@ -93,23 +93,23 @@ void collectData()
       String(gps.getHour()) + "," +
       String(gps.getMinute()) + "," +
       String(gps.getSecond()) + "," +
-      String(accelerometer.getAccelerationX()) + "," + 
-      String(accelerometer.getAccelerationY()) + "," +
-      String(accelerometer.getAccelerationZ()) + "," +
-      String(accelerometer.getOrientationX()) + "," +
-      String(accelerometer.getOrientationY()) + "," + 
-      String(accelerometer.getOrientationZ()) + "," +
-      String(accelerometer.getGyroX()) + "," +
-      String(accelerometer.getGyroY()) + "," +
-      String(accelerometer.getGyroZ()) + "," +
-      String(bme.getHumidity()) + "," +
-      String(bme.getPressure()) + "," +
-      String(bme.getTemperature()) + "," +
-      String(gps.getAltitude()) + "," +
-      String(pressure_kP) + "," +
-      String(temperature_C) + "," +
-      String(gps.getLatitude()) + "," +
-      String(gps.getLongitude())  + "," +
+      String(accelerometer.getAccelerationX(),3) + "," + 
+      String(accelerometer.getAccelerationY(),3) + "," +
+      String(accelerometer.getAccelerationZ(),3) + "," +
+      String(accelerometer.getOrientationX(),3) + "," +
+      String(accelerometer.getOrientationY(),3) + "," + 
+      String(accelerometer.getOrientationZ(),3) + "," +
+      String(accelerometer.getGyroX(),3) + "," +
+      String(accelerometer.getGyroY(),3) + "," +
+      String(accelerometer.getGyroZ(),3) + "," +
+      String(bme.getHumidity(),3) + "," +
+      String(bme.getPressure(),3) + "," +
+      String(bme.getTemperature(),3) + "," +
+      String(gps.getAltitude(),3) + "," +
+      String(pressure_kP,3) + "," +
+      String(temperature_C,3) + "," +
+      String(gps.getLatitude(), 7) + "," +
+      String(gps.getLongitude(), 7)  + "," +
       String(gps.getSIV()) + ","
       ;
       
@@ -360,7 +360,7 @@ void ledBlink(){  // blink for 1/20th of a sec at 1hz
 
 void setup() 
 {
-  Serial.begin(9600);
+  Serial.begin(                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       );
   Serial1.begin(115200);
 
   //csv file header
