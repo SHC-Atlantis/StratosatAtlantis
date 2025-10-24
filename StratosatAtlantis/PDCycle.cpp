@@ -1,10 +1,9 @@
 #include "PDCycle.h"
 
 
-PDCycle::PDCycle(float target_deg, float current_deg, OutputType output_type, float kP, float kD, float tolerance)
+PDCycle::PDCycle(float target_deg, float current_deg, float kP, float kD, float tolerance)
   : m_kP(kP)
   , m_kD(kD)
-  , m_output_type(output_type)
   , m_tolerance(tolerance)
   , m_error(0.0)
   , m_last_error(0.0)
@@ -19,11 +18,6 @@ float PDCycle::calculate(unsigned long time_ms)
   m_time_ms = time_ms;
 
   m_error = m_pos_deg - m_target_pos_deg;
-
-  if (m_output_type == OutputType::Percent)
-  {
-    m_error /= m_target_pos_deg;
-  }
 
   m_p_output = m_error * m_kP; //Proportional calculation
 
