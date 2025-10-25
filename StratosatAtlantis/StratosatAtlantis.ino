@@ -31,7 +31,7 @@ const int kRB_SOLENOID = 4; //Right-Back Solenoid pin number CWW
 const int CCW = 4;
 const int CW = 3;
 
-float altitude = 25000;
+float altitude = 0;
 
 int topReached = 0;
 
@@ -360,7 +360,7 @@ void ledBlink(){  // blink for 1/20th of a sec at 1hz
 
 void setup() 
 {
-  Serial.begin(                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       );
+  Serial.begin(9600);
   Serial1.begin(115200);
 
   //csv file header
@@ -393,12 +393,12 @@ void setup()
   Serial.println("ICP: ") + String(error_stored);
 
   lastAlt = gps.getAltitude();
-  stage = FlightStage::STABILIZE; //TODO:__________________________________________________________________________DELETE_______________________
+  //stage = FlightStage::STABILIZE; //TODO:__________________________________________________________________________DELETE_______________________
 }
 
 void loop() 
 {
-
+  altitude = gps.getAltitude();
   ledBlink(); //--------------------------------------------------------------------------TODO: uncomment
 
   // if(altitude < 30000 && topReached == 0){
