@@ -36,7 +36,7 @@ float altitude = 0;
 int topReached = 0;
 
 
-const float kSTABILIZATION_ALTITUDE = 20000.0; //The height required to begin stabilization
+const float kSTABILIZATION_ALTITUDE = 18000.0; //The height required to begin stabilization
 
 float lastAlt = 0;
 int count = 0;
@@ -114,6 +114,7 @@ void collectData()
       ;
       
     Serial1.println(data);
+    Serial.println(data);
     //delay(50);
 } 
 /*
