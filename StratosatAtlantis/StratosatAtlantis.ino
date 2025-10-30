@@ -22,8 +22,9 @@ enum class FlightStage
 
 //The front has the camera
 
-//Declare variables
-const int kMAIN_LED = 2; //Main LED pin number
+
+const int kMAIN_LED_1 = 2;
+const int kMAIN_LED_2 = 5;//Main LED pin number
 const int kLF_SOLENOID = 4; //Left-Front Solenoid pin number CWW
 const int kLB_SOLENOID = 3; //Left-Back Solenoid pin number CC
 const int kRF_SOLENOID = 3; //Right-Front Solenoid pin number CC
@@ -31,13 +32,12 @@ const int kRB_SOLENOID = 4; //Right-Back Solenoid pin number CWW
 const int CCW = 4;
 const int CW = 3;
 
-float altitude = 25000;
+float altitude = 0;
 
 int topReached = 0;
 
 
-const float kASCENT_ALTITUDE = 500.0; //The height required to begin ascent
-const float kSTABILIZATION_ALTITUDE = 20000.0; //The height required to begin stabilization
+const float kSTABILIZATION_ALTITUDE = 18000.0; //The height required to begin stabilization
 
 float lastAlt = 0;
 int count = 0;
@@ -53,7 +53,7 @@ String FStage = "INIT";
 
 FlightStage stage;
 
-LED main_LED(kMAIN_LED_1);
+//LED main_LED(kMAIN_LED);
 
 SHC_BME280 bme;
 BNO055 accelerometer;
@@ -70,6 +70,8 @@ Timer downveloctiy_timer(1000); //Timer for down vel
 Timer solenoid_timer(75); //Timer to control the solenoid's rate of fire.
 Timer firing_timer(50);
 Timer velocitycap_timer(500);
+Timer blinky_on_timer(50);
+Timer blinky_off_timer(1000);
 
 
 //Functions
@@ -92,27 +94,28 @@ void collectData()
       String(gps.getHour()) + "," +
       String(gps.getMinute()) + "," +
       String(gps.getSecond()) + "," +
-      String(accelerometer.getAccelerationX()) + "," + 
-      String(accelerometer.getAccelerationY()) + "," +
-      String(accelerometer.getAccelerationZ()) + "," +
-      String(accelerometer.getOrientationX()) + "," +
-      String(accelerometer.getOrientationY()) + "," + 
-      String(accelerometer.getOrientationZ()) + "," +
-      String(accelerometer.getGyroX()) + "," +
-      String(accelerometer.getGyroY()) + "," +
-      String(accelerometer.getGyroZ()) + "," +
-      String(bme.getHumidity()) + "," +
-      String(bme.getPressure()) + "," +
-      String(bme.getTemperature()) + "," +
-      String(gps.getAltitude()) + "," +
-      String(pressure_kP) + "," +
-      String(temperature_C) + "," +
-      String(gps.getLatitude()) + "," +
-      String(gps.getLongitude())  + "," +
+      String(accelerometer.getAccelerationX(),3) + "," + 
+      String(accelerometer.getAccelerationY(),3) + "," +
+      String(accelerometer.getAccelerationZ(),3) + "," +
+      String(accelerometer.getOrientationX(),3) + "," +
+      String(accelerometer.getOrientationY(),3) + "," + 
+      String(accelerometer.getOrientationZ(),3) + "," +
+      String(accelerometer.getGyroX(),3) + "," +
+      String(accelerometer.getGyroY(),3) + "," +
+      String(accelerometer.getGyroZ(),3) + "," +
+      String(bme.getHumidity(),3) + "," +
+      String(bme.getPressure(),3) + "," +
+      String(bme.getTemperature(),3) + "," +
+      String(gps.getAltitude(),3) + "," +
+      String(pressure_kP,3) + "," +
+      String(temperature_C,3) + "," +
+      String(gps.getLatitude(), 7) + "," +
+      String(gps.getLongitude(), 7)  + "," +
       String(gps.getSIV()) + ","
       ;
       
     Serial1.println(data);
+    Serial.println(data);
     //delay(50);
 } 
 /*
@@ -139,14 +142,14 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
   float target = 45.0;
   //Serial.print("Value: ");
   //Serial.println(getErrorAngle(pos_deg));
-  Serial1.print("error cal: ");
-  Serial1.println(errorCalc(pos_deg, target));
-  Serial1.print("orientation: ");
-  Serial1.println(accelerometer.getOrientationX());
-  Serial1.print("Solenoid Timer: ");
-  Serial1.println(solenoid_timer.timeRemaining());
-  Serial1.print("Firing timer: ");
-  Serial1.println(firing_timer.timeRemaining());
+  Serial.print("error cal: ");
+  Serial.println(errorCalc(pos_deg, target));
+  Serial.print("orientation: ");
+  Serial.println(accelerometer.getOrientationX());
+  Serial.print("Solenoid Timer: ");
+  Serial.println(solenoid_timer.timeRemaining());
+  Serial.print("Firing timer: ");
+  Serial.println(firing_timer.timeRemaining());
   
 
   
@@ -170,7 +173,7 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
   if (solenoid_timer.isComplete()){
 
     Serial.println("SOL TIMER COMPLETE");
-    Serial1.println("SOL TIMER COMPLETE");
+    // Serial1.println("SOL TIMER COMPLETE");
     // if(firing_timer.isComplete()){
     //   digitalWrite(CW, LOW);
     //   digitalWrite(CCW, LOW);
@@ -187,14 +190,14 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
     if(accelerometer.getGyroZ() > 60){
       fireCW();
       velocitycap_timer.reset();
-      Serial1.println("over 60");
+      Serial.println("over 60");
       return;
     }
 
     else if(accelerometer.getGyroZ() < -60){
       fireCCW();
       velocitycap_timer.reset();
-      Serial1.println("under -60");
+      Serial.println("under -60");
       return;
     }
 
@@ -204,14 +207,12 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
     {  
       if((accelerometer.getGyroZ() < -10) || ((errorCalc(pos_deg, target)>(-20)) && (accelerometer.getGyroZ() < 0))){
         Serial.println("not CW");
-        Serial1.println("not CW");
         stopAll();
         return;
       
       }
       else{
         Serial.println("FiredCW");
-        Serial1.println("FiredCW");
         
         fireCW();
         firing_timer.reset();
@@ -220,27 +221,25 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
 
       //Serial.print("Orientation: ");
       //Serial.println(accelerometer.getOrientationX());
-      Serial1.println("-------------------------------CLOCKWISE");
-      Serial1.println("-------------------------------CLOCKWISE");
+      Serial.println("-------------------------------CLOCKWISE");
     }
     else if (errorCalc(pos_deg, target)>(tolerance_deg)) //Rotate counter clockwise
     {
       if((accelerometer.getGyroZ() > 10) || ((errorCalc(pos_deg, target)>(20)) && (accelerometer.getGyroZ() > 0))){
-        Serial1.println("not CCW");
-        Serial1.println("not CCW");
+        Serial.println("not CCW");
+        Serial.println("not CCW");
         stopAll();
         return;
       }
       else{
-        Serial1.println("FiredCCW");
-        Serial1.println("FiredCCW");
+        Serial.println("FiredCCW");
+        Serial.println("FiredCCW");
         fireCCW();
         firing_timer.reset();
         return;
       }
 
-      Serial1.println("-------------------------------COUNTER CLOCKWISE");
-      Serial1.println("-------------------------------COUNTER CLOCKWISE");
+      Serial.println("-------------------------------COUNTER CLOCKWISE");
     }
 
     
@@ -249,8 +248,7 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
       stopAll();
 
 
-      Serial1.println("-------------------------------ALIGNED");
-      Serial1.println("-------------------------------ALIGNED");
+      Serial.println("-------------------------------ALIGNED");
     }
     // firing_timer.reset();
     // if (firing_timer.isComplete() && solenoid_timer.isComplete()){
@@ -270,50 +268,40 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
   
   else //Do not rotate
   {
-    Serial1.println("_________________________________________________________________TIMER NOT COMPLETE");
-    Serial1.println("solenoid_timer");
-    Serial1.println(solenoid_timer.timeRemaining());
-    // stopAll();
-
-
-
-
-    // digitalWrite(kLF_SOLENOID, LOW);
-    // digitalWrite(kRB_SOLENOID, LOW);
+    Serial.println("_________________________________________________________________TIMER NOT COMPLETE");
+    Serial.println("solenoid_timer");
+    Serial.println(solenoid_timer.timeRemaining());
   }
-  Serial1.print("Gyro: ");
-  Serial1.println(accelerometer.getGyroZ());
-  Serial1.print("Solenoid Timer: ");
-  Serial1.println(solenoid_timer.timeRemaining());
+  Serial.print("Gyro: ");
+  Serial.println(accelerometer.getGyroZ());
+  Serial.print("Solenoid Timer: ");
+  Serial.println(solenoid_timer.timeRemaining());
 }
 
 
-void fireCW(){
+void fireCW(){ // fire CW
   digitalWrite(CW, HIGH);
   digitalWrite(CCW, LOW);
-  Serial1.println("CW");
+  Serial.println("CW");
 }
 
-void fireCCW(){
+void fireCCW(){ // fire CCW
   digitalWrite(CCW, HIGH);
   digitalWrite(CW, LOW);
-  Serial1.println("CCW");
+  Serial.println("CCW");
 }
 
-void stopAll(){
+void stopAll(){ // stop all solenoids
   digitalWrite(CW, LOW);
   digitalWrite(CCW, LOW);
-  Serial1.println("STOP");
+  Serial.println("STOP");
 }
 
-
-double errorCalc(double current, double target){
+double errorCalc(double current, double target){ // error calculations given by mentor Drew 
   return ((((int)(current - target)+ 540) % 360)-180);
 }
 
-bool posVelocity(){
-  //Serial.print("Current count ------------->");
-  //Serial.println(count);
+bool posVelocity(){ // check for positive velocity every second for 30s
   currentAlt = altitude;
   if(count < 30){ 
     if(downvelocity_timer.isComplete()){
@@ -335,14 +323,10 @@ bool posVelocity(){
   return false;
 }
 
-bool negVelocity(int time){
-  //Serial.print("(neg) Current count ------------->");
-  //Serial.println(count);
+bool negVelocity(int time){ //check for negative velocity every second for 'time' seconds
   currentAlt = altitude;
   if(count < time){
     if(downvelocity_timer.isComplete()){
-      //Serial.println(currentAlt);
-      //Serial.println(lastAlt);
       if((currentAlt - lastAlt) < 0){ //check if alt difference is neg
         count += 1;
       } 
@@ -361,28 +345,30 @@ bool negVelocity(int time){
   return false;
 }
 
-//Main code
+void ledBlink(){  // blink for 1/20th of a sec at 1hz
+  if(blinky_off_timer.isComplete()){
+      blinky_on_timer.reset(); 
+      digitalWrite(kMAIN_LED_1, HIGH);
+      digitalWrite(kMAIN_LED_2, HIGH);
+      Serial.print("ON");
+      blinky_off_timer.reset();
+  }
+  else if(blinky_on_timer.isComplete()){
+      digitalWrite(kMAIN_LED_1, LOW);
+      digitalWrite(kMAIN_LED_2, LOW);
+      Serial.print("OFF");
+    }
+  }
 
 void setup() 
 {
-  
   Serial.begin(9600);
   Serial1.begin(115200);
 
   //csv file header
   Serial1.println("Stage,UNIX,Year,Month,Day,Hour,Min,Sec,AccX(m/s^2),AccY(m/s^2),AccZ(m/s^2),Yaw(degrees),Roll(degrees),Pitch(degrees),GyroX(deg/s),GyroY(deg/s),GyroZ(deg/s),Humidity(%rh),Pressure(mb),Temperature(C),Altitude(m),ICP-Pressure(kP),ICP-Temperature(C),Lat,Long,SIV,");
 
-  //Initialize variables
   stage = FlightStage::LAUNCH;
- // main_LED = LED(kMAIN_LED_1, 50, 950); // blink 1/20 sec at 1hz
-
-  //Initialize systems
-
-  //pinMode(kMAIN_LED_1, OUTPUT);
-  //pinMode(kMAIN_LED_2, OUTPUT);
-
-  //pinMode(kCW_SOLENOID, OUTPUT);
-  //pinMode(kCCW_SOLENOID, OUTPUT);
 
   int error_amount = 0;
   int error_stored;
@@ -408,15 +394,15 @@ void setup()
 
   Serial.println("ICP: ") + String(error_stored);
 
-
-  
-
   lastAlt = gps.getAltitude();
-  stage = FlightStage::STABILIZE; //__________________________________________________________________________DELETE_______________________
+  //stage = FlightStage::STABILIZE; //TODO:__________________________________________________________________________DELETE_______________________
 }
 
 void loop() 
 {
+  altitude = gps.getAltitude();
+  ledBlink(); //--------------------------------------------------------------------------TODO: uncomment
+
   // if(altitude < 30000 && topReached == 0){
   //   altitude += 16;
   // }
@@ -538,8 +524,9 @@ void loop()
         collection_timer.reset();
       }
     default:
+      FStage = "DEFAULT";
       collectData();
-      Serial1.println("Default");
+      Serial.println("Default");
   
   }
 }
