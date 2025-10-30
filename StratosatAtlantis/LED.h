@@ -24,7 +24,7 @@ public:
 
 	  @param time_ms: new timestamp for the internal clock
 	*/
-	int update(unsigned long time_ms);
+	bool update(unsigned long time_ms);
 
 	inline void TurnOn() { m_on = true; }
 	inline void TurnOff() { m_on = false; }

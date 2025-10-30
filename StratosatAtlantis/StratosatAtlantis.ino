@@ -10,6 +10,7 @@
 
 #include "ICP201xx.h"
 
+
 enum class FlightStage
 {
   LAUNCH,
@@ -129,7 +130,7 @@ float getErrorAngle(float init_angle_deg)
   return init_angle_deg - atan2(target_y,target_x)/3.141592*180; //converts to deg
 }
 
-/*Fires solenoids in pairs based upon the angular position relative to the target position via BangBang
+/*Fires solenoids based upon the angular position relative to the target position via BangBang
 * @param pos_deg: the current angular position
 * @param tolerance_deg: how much of an angle to allow pos_deg to be off from the target
 */
@@ -464,6 +465,8 @@ void loop()
         Serial.println("----------- stabilize");
         stage = FlightStage::STABILIZE;
       }
+      
+      was_above_stabilization = altitude > kSTABILIZATION_ALTITUDE;
 
       else if (negVelocity(10))
       {
