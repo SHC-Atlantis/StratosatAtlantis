@@ -10,8 +10,7 @@
 
 #include "ICP201xx.h"
 
-
-enum class FlightStage
+enum class FlightStage //determined by state machiene
 {
   LAUNCH,
   ASCENT,
@@ -22,23 +21,20 @@ enum class FlightStage
 
 //The front has the camera
 
-
-const int kMAIN_LED_1 = 2;
-const int kMAIN_LED_2 = 5;//Main LED pin number
+const int kMAIN_LED_1 = 2;  //Left LED
+const int kMAIN_LED_2 = 5;  //Right LED
 const int kLF_SOLENOID = 4; //Left-Front Solenoid pin number CWW
 const int kLB_SOLENOID = 3; //Left-Back Solenoid pin number CC
 const int kRF_SOLENOID = 3; //Right-Front Solenoid pin number CC
 const int kRB_SOLENOID = 4; //Right-Back Solenoid pin number CWW
-const int CCW = 4;
+
+const int CCW = 4; 
 const int CW = 3;
 
-float altitude = 0;
+const float kSTABILIZATION_ALTITUDE = 18000.0; //height required to begin stabilization, TODO:change before flight
 
-int topReached = 0;
-
-
-const float kSTABILIZATION_ALTITUDE = 18000.0; //The height required to begin stabilization
-
+//init vars
+float altitude = 0; 
 float lastAlt = 0;
 int count = 0;
 float beginAlt = 0;
@@ -47,13 +43,8 @@ float currentAlt = 0;
 float pressure_kP = 0;
 float temperature_C = 0;
 
-int velocityCap = 30;
-
-String FStage = "INIT";
-
+String FStage = "INIT"; // initial flight stage, should not be printed out to SD
 FlightStage stage;
-
-//LED main_LED(kMAIN_LED);
 
 SHC_BME280 bme;
 BNO055 accelerometer;
@@ -61,7 +52,6 @@ M9N gps;
 
 ICP201xx ICP(Wire,0);
 
-Timer above500m_upvelocity_timer(30000); //Timer to track upward velocity and if the satellite is above 500m.
 Timer ascent_timer(30000); //Timer to remain in ascension for 30s.
 Timer downvelocity_timer(3000); //Timer to track downward velocity for 30s.
 Timer novelocity_timer(30000); //Timer to track absence of velocity for 30s.
@@ -73,18 +63,13 @@ Timer velocitycap_timer(500);
 Timer blinky_on_timer(50);
 Timer blinky_off_timer(1000);
 
-
-//Functions
-
-/*
-* Collect satellite data and write to "data.txt"
-*/
+// collect data and write to MicroSD via open log
 void collectData()
 {
-  
   ICP.getData(pressure_kP,temperature_C);
-  // Serial.println("Stage, UNIX, Year,Month,Day,Hour,Min,Sec,AccX(m/s^2),AccY(m/s^2),AccZ(m/s^2),Yaw(degrees),Roll(degrees),Pitch(degrees),GyroX(deg/s),GyroY(deg/s),GyroZ(deg/s),Humidity(%rh),Pressure(mb),Temperature(C),Altitude(m),ICP-Pressure(kP),ICP-Temperature(C),Lat,Long,SIV,");
-  // Stage,Year,Month,Day,Time,Minute,Second,AccX,AccY,AccZ,OrientX,OrientY,OrientZ,GyroX,GyroY,GyroZ,Humidity,Pressure,Temperature,Altitude,Pressure,Temperature,Altitude,Latitude,Longitude,SIV
+  //Serial.println("Stage, UNIX, Year,Month,Day,Hour,Min,Sec,AccX(m/s^2),AccY(m/s^2),AccZ(m/s^2),Yaw(degrees),Roll(degrees),Pitch(degrees),GyroX(deg/s),GyroY(deg/s),GyroZ(deg/s),Humidity(%rh),Pressure(mb),Temperature(C),Altitude(m),ICP-Pressure(kP),ICP-Temperature(C),Lat,Long,SIV,");
+  //Stage,Year,Month,Day,Time,Minute,Second,AccX,AccY,AccZ,OrientX,OrientY,OrientZ,GyroX,GyroY,GyroZ,Humidity,Pressure,Temperature,Altitude,Pressure,Temperature,Altitude,Latitude,Longitude,SIV
+  
   String data = ""+
       String(FStage) + "," +
       String(gps.getUnixTime()) + "," +
@@ -116,32 +101,19 @@ void collectData()
       
     Serial1.println(data);
     Serial.println(data);
-    //delay(50);
 } 
-/*
-* Gets the angle of error that the satellite must rotate to
-* @param init_angle_deg: The angle that satellite is currently facing
 */
-float getErrorAngle(float init_angle_deg)
-{
-  float target_x = 1; //TODO-----------------UPDATE
-  float target_y = 1; //TODO-----------------UPDATE
-
-  return init_angle_deg - atan2(target_y,target_x)/3.141592*180; //converts to deg
-}
 
 /*Fires solenoids based upon the angular position relative to the target position via BangBang
-* @param pos_deg: the current angular position
-* @param tolerance_deg: how much of an angle to allow pos_deg to be off from the target
-*/
 
+// fire solenoids using modified bang-bang
 void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
 {
-
-  // delay(50); //-------------------------------------------------------------DELAY-----(don't forget)-----------------------------
   float target = 45.0;
-  //Serial.print("Value: ");
-  //Serial.println(getErrorAngle(pos_deg));
+
+  // delay(50); //TODO: delete before flight, for testing only
+  
+  /* Debugging Print Statements
   Serial.print("error cal: ");
   Serial.println(errorCalc(pos_deg, target));
   Serial.print("orientation: ");
@@ -150,34 +122,11 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
   Serial.println(solenoid_timer.timeRemaining());
   Serial.print("Firing timer: ");
   Serial.println(firing_timer.timeRemaining());
+  */
   
-
-  
-  // if(solenoid_timer.isComplete()){
-    
-  //   if(accelerometer.getGyroZ() > 60){
-  //     fireCW();
-  //     velocitycap_timer.reset();
-  //   }
-
-  //   else if(accelerometer.getGyroZ() < -60){
-  //     fireCCW();
-  //     velocitycap_timer.reset();
-  //   }
-
-  //   else if{
-  //   }
-  // }
-
-
   if (solenoid_timer.isComplete()){
 
     Serial.println("SOL TIMER COMPLETE");
-    // Serial1.println("SOL TIMER COMPLETE");
-    // if(firing_timer.isComplete()){
-    //   digitalWrite(CW, LOW);
-    //   digitalWrite(CCW, LOW);
-    // }
 
     if(velocitycap_timer.isComplete()){
       stopAll();
@@ -187,21 +136,19 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
       stopAll();
     }
 
-    if(accelerometer.getGyroZ() > 60){
+    if(accelerometer.getGyroZ() > 60){ //too fast CCW
       fireCW();
       velocitycap_timer.reset();
       Serial.println("over 60");
       return;
     }
 
-    else if(accelerometer.getGyroZ() < -60){
+    else if(accelerometer.getGyroZ() < -60){ //too fast CW
       fireCCW();
       velocitycap_timer.reset();
       Serial.println("under -60");
       return;
     }
-
-    
 
     if (errorCalc(pos_deg, target) < ((-1) * tolerance_deg)) //Rotate clockwise
     {  
@@ -219,10 +166,9 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
         return;
       }
 
-      //Serial.print("Orientation: ");
-      //Serial.println(accelerometer.getOrientationX());
-      Serial.println("-------------------------------CLOCKWISE");
+      Serial.println("CLOCKWISE");
     }
+
     else if (errorCalc(pos_deg, target)>(tolerance_deg)) //Rotate counter clockwise
     {
       if((accelerometer.getGyroZ() > 10) || ((errorCalc(pos_deg, target)>(20)) && (accelerometer.getGyroZ() > 0))){
@@ -238,31 +184,16 @@ void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
         firing_timer.reset();
         return;
       }
-
-      Serial.println("-------------------------------COUNTER CLOCKWISE");
+      Serial.println("COUNTER CLOCKWISE");
     }
-
     
     else //Do not rotate
     {
       stopAll();
 
 
-      Serial.println("-------------------------------ALIGNED");
+      Serial.println("ALIGNED");
     }
-    // firing_timer.reset();
-    // if (firing_timer.isComplete() && solenoid_timer.isComplete()){
-    //   Serial.println("THE IF");
-    //   Serial1.println("THE IF");
-
-    //   if((errorCalc(pos_deg, target)<(tolerance_deg)) && (errorCalc(pos_deg, target) < ((-1) * tolerance_deg))){
-    //     stopAll();
-    //   }
-    //   stopAll();
-    //   //digitalWrite(CW, LOW);
-    //   //digitalWrite(CCW, LOW);
-    // }
-
     
   }
   
@@ -297,8 +228,8 @@ void stopAll(){ // stop all solenoids
   Serial.println("STOP");
 }
 
-double errorCalc(double current, double target){ // error calculations given by mentor Drew 
-  return ((((int)(current - target)+ 540) % 360)-180);
+double errorCalc(double current, double target){  
+  return ((((int)(current - target)+ 540) % 360)-180); //error calculation formula given by mentor Drew but we were really close to getting it on our own
 }
 
 bool posVelocity(){ // check for positive velocity every second for 30s
@@ -340,6 +271,7 @@ bool negVelocity(int time){ //check for negative velocity every second for 'time
     lastAlt = currentAlt;
   }
   else if(count >= time){ 
+    //post flight note: missing a count=0 here
     return true;
   }
   return false;
@@ -348,13 +280,13 @@ bool negVelocity(int time){ //check for negative velocity every second for 'time
 void ledBlink(){  // blink for 1/20th of a sec at 1hz
   if(blinky_off_timer.isComplete()){
       blinky_on_timer.reset(); 
-      digitalWrite(kMAIN_LED_1, HIGH);
+      digitalWrite(kMAIN_LED_1, HIGH); //high is on
       digitalWrite(kMAIN_LED_2, HIGH);
       Serial.print("ON");
       blinky_off_timer.reset();
   }
   else if(blinky_on_timer.isComplete()){
-      digitalWrite(kMAIN_LED_1, LOW);
+      digitalWrite(kMAIN_LED_1, LOW); //low is off
       digitalWrite(kMAIN_LED_2, LOW);
       Serial.print("OFF");
     }
@@ -362,16 +294,16 @@ void ledBlink(){  // blink for 1/20th of a sec at 1hz
 
 void setup() 
 {
-  Serial.begin(9600);
-  Serial1.begin(115200);
+  Serial.begin(9600); //Serial is the USB output
+  Serial1.begin(115200); //Serial1 is the openLog MicroSD card output (for flight day)
 
   //csv file header
   Serial1.println("Stage,UNIX,Year,Month,Day,Hour,Min,Sec,AccX(m/s^2),AccY(m/s^2),AccZ(m/s^2),Yaw(degrees),Roll(degrees),Pitch(degrees),GyroX(deg/s),GyroY(deg/s),GyroZ(deg/s),Humidity(%rh),Pressure(mb),Temperature(C),Altitude(m),ICP-Pressure(kP),ICP-Temperature(C),Lat,Long,SIV,");
 
-  stage = FlightStage::LAUNCH;
-
   int error_amount = 0;
   int error_stored;
+
+  stage = FlightStage::LAUNCH; //initalize to launch stage
 
   error_stored = accelerometer.init(); //init accelerometer
   error_amount += error_stored;
@@ -395,55 +327,48 @@ void setup()
   Serial.println("ICP: ") + String(error_stored);
 
   lastAlt = gps.getAltitude();
-  //stage = FlightStage::STABILIZE; //TODO:__________________________________________________________________________DELETE_______________________
+  
+  //stage = FlightStage::STABILIZE; //TODO: not for flight, just for testing stabilization
 }
 
 void loop() 
 {
   altitude = gps.getAltitude();
-  ledBlink(); //--------------------------------------------------------------------------TODO: uncomment
+  ledBlink(); //TODO: uncomment, commented for testing so I dont go blind
 
-  // if(altitude < 30000 && topReached == 0){
-  //   altitude += 16;
-  // }
-  // else if(altitude >= 30000){
-  //   topReached = 1;
-  // }
+  /* testing for state machiene
+  if(altitude < 30000 && topReached == 0){
+    altitude += 16;
+  }
+  else if(altitude >= 30000){
+    topReached = 1;
+  }
   
-  // if(topReached == 1){
-  //   altitude -= 16;
-  // }
+  if(topReached == 1){
+    altitude -= 16;
+  }
 
-  // if (altitude > 0){
-  //   altitude -= 16;
-  // }
-  // else{
-  //   altitude = 0;
-  // }
+  if (altitude > 0){
+    altitude -= 16;
+  }
+  else{
+    altitude = 0;
+  }
+  */
   
   bme.prefetchData();
   accelerometer.prefetchData();
   gps.prefetchData();
 
-  //bool above_500m_upvelocity = (gps.getAltitude() > 500.0) && (negVel());
-  //bool first_run = true; // TODO: unused, can it be deleted?
-  //bool was_above_stabilization = false;
-
-  //Serial.print("Stage: ");
-  // Serial.println(FStage);
-  // Serial.print("Alt: ");
-  // Serial.println(altitude);
-
+  //flight stage switch case destermined by state machiene
   switch (stage)
   {
     case FlightStage::LAUNCH:
       FStage = "LAUNCH";
-      //collectData();
-      Serial.print("Gyro: ");
-      Serial.println(String(accelerometer.getGyroZ())); //--------------------------------------------------------------
+      //collectData(); //should we collect data here? at 50x a second it seems like a lot
+      //post flight day note- it wouldnt hurt, could have been good
 
-      //Serial.println("pre posVel");
-      if (posVelocity() == true){
+      if (posVelocity() == true){ //once pos velocity is achieved we can assume we are in the sky
         stage = FlightStage::ASCENT;
       }
     break;
@@ -453,14 +378,14 @@ void loop()
       
       collectData();
 
-      if (altitude < kSTABILIZATION_ALTITUDE)
+      if (altitude < kSTABILIZATION_ALTITUDE) // less than stabilization alt
       {
         Serial.println("-----------less than alt to stabilize");
         ascent_timer.reset();
         break;
       }
         
-      else if(ascent_timer.isComplete() && (kSTABILIZATION_ALTITUDE < altitude))
+      else if(ascent_timer.isComplete() && (kSTABILIZATION_ALTITUDE < altitude)) //at stabilization alt and had pos vel for 30s
       {
         Serial.println("----------- stabilize");
         stage = FlightStage::STABILIZE;
@@ -468,30 +393,30 @@ void loop()
       
       was_above_stabilization = altitude > kSTABILIZATION_ALTITUDE;
 
-      else if (negVelocity(10))
+      else if (negVelocity(10)) //oopsie the balloon popped early, no stabilization for you
       {
         Serial.println("loosing alt");
         stage = FlightStage::DESCENT;
       }
 
-      else{
+      else{ //loop back thru again
         Serial.println("else");
       }
       Serial.println(ascent_timer.timeRemaining());
     break;
 
-    case FlightStage::STABILIZE:
+    case FlightStage::STABILIZE: //yippie my favorite stage :D
       FStage = "STABILIZE";
       
       collectData();
 
-      if (negVelocity(30))
+      if (negVelocity(30)) //falling for 30 seconds, in descent
         {
           stage = FlightStage::DESCENT;
         }
-
+      //post flight note: we never had a negative velocity for 30 seconds, this didnt work
       
-      fireSolenoidsByBB(accelerometer.getOrientationX()); //TODO: Tune / stabilize
+      fireSolenoidsByBB(accelerometer.getOrientationX()); //STABILIZATION!
       if(solenoid_timer.isComplete()){
         solenoid_timer.reset();
         firing_timer.reset();
@@ -503,13 +428,13 @@ void loop()
 
       collectData();
 
-      if(novelocity_timer.isComplete() && abs((beginAlt - altitude)) > 10)
+      if(novelocity_timer.isComplete() && abs((beginAlt - altitude)) > 10)//we had >10m altitude change, must still be falling
       {
         novelocity_timer.reset();
         beginAlt = altitude;
       }
       
-      else if (novelocity_timer.isComplete() && abs((beginAlt - altitude)) < 10)
+      else if (novelocity_timer.isComplete() && abs((beginAlt - altitude)) < 10) //less than 10m altitude movement in 30s
       {
         stage = FlightStage::LANDED;
       }
@@ -517,7 +442,7 @@ void loop()
 
     case FlightStage::LANDED:
       FStage = "LANDED";
-      if (collection_timer.isComplete())
+      if (collection_timer.isComplete()) //slow down data collection rate on ground
       {
         collectData();
 
