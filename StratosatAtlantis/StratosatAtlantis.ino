@@ -102,9 +102,6 @@ void collectData()
     Serial1.println(data);
     Serial.println(data);
 } 
-*/
-
-/*Fires solenoids based upon the angular position relative to the target position via BangBang
 
 // fire solenoids using modified bang-bang
 void fireSolenoidsByBB(float pos_deg, float tolerance_deg = 10)
