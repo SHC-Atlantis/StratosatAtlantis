@@ -26,6 +26,6 @@ On flight day we changed our stabilization altitude to 18,000 meters to better r
 ## The Results
 When processing the data stored as a CSV on our payload SD card we found over a million lines of data, and about half of those were from during flight. We were able to create graphs that showed successful stabilization and orientation to 45 degrees. Our state machine worked through stabilization, but did not make it past. The most important feature was making it to stabilization, so we aren't counting that as a failure. We had overall mission success, with notes for minor improvements.
   
-
+![](https://github.com/SHC-Atlantis/StratosatAtlantis/blob/main/Images/GPSandAlt.png?raw=true)
 ![](https://github.com/SHC-Atlantis/StratosatAtlantis/blob/main/Images/rotAccVsTime.png?raw=true)
 ![](https://github.com/SHC-Atlantis/StratosatAtlantis/blob/main/Images/YawAltVsTime.png?raw=true)
